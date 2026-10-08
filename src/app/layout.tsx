@@ -1,37 +1,40 @@
 import type { Metadata } from "next";
-import { SITE } from "@/lib/site";
-import { SiteHeader } from "@/components/layout/SiteHeader";
-import { SiteFooter } from "@/components/layout/SiteFooter";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
 
-/** Global metadata. Each page can override title and description. */
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: {
-    default: `${SITE.name} — International Remittance`,
-    template: `%s · ${SITE.name}`,
+    default: "QilaPay — Remittance adaptif di Tempo Testnet",
+    template: "%s · QilaPay",
   },
-  description: SITE.description,
+  description:
+    "Kirim uang lintas mata uang dengan settlement hitungan detik di Tempo Testnet (Moderato), kurs transparan, dan KYC adaptif yang naik hanya saat dibutuhkan.",
+  keywords: ["QilaPay", "Tempo", "stablecoin", "remittance", "TIP-20", "adaptive KYC"],
 };
 
-/**
- * Root layout.
- * The header is a fixed floating capsule, so main carries top padding.
- * The footer hides itself for signed-in users (see SiteFooter).
- * Page content is injected via `children`.
- */
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="en">
-      <body>
-        <div className="flex min-h-screen flex-col">
-          <SiteHeader />
-          <main className="flex-1 pt-[92px]">{children}</main>
-          <SiteFooter />
-        </div>
+    <html lang="id" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+      >
+        {children}
+        <Toaster />
       </body>
     </html>
   );

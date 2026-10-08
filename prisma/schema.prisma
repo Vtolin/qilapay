@@ -1,0 +1,202 @@
+// QilaPay schema — adaptive-KYC remittance app on Tempo Testnet
+// Amounts for token values are stored as string micro-units (6 decimals).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  fullName       String
+  country        String   @default("ID")
+  currentTier    Int      @default(0)
+  personaKey     String?  // sari | budi | dewi | admin for demo personas
+  createdAt      DateTime @default(now())
+
+  role           UserRole?
+  wallet         Wallet?
+  recipients     Recipient[]
+  quotes         Quote[]
+  transfers      Transfer[]
+  verifications  KycVerification[]
+  riskDecisions  RiskDecision[]
+}
+
+model UserRole {
+  userId String @id
+  role   String @default("user") // user | admin
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model KycTierConfig {
+  tier               Int    @id // 0..3
+  name               String
+  perTxLimitUsd      Float
+  rolling30dLimitUsd Float
+  requiredMethods    String @default("[]") // jsonb-equivalent: json array of method keys
+  description        String @default("")
+}
+
+model KycVerification {
+  id          String   @id @default(cuid())
+  userId      String
+  method      String   // selfie_liveness | age_estimation | id_face_match | bank_micro_deposit | proof_of_address | source_of_funds | video_call
+  status      String   @default("pending") // pending | approved | rejected | needs_more_info
+  targetTier  Int
+  providerRef String   @default("mock")
+  payload     String   @default("{}") // json
+  reviewedBy  String?
+  createdAt   DateTime @default(now())
+  reviewedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model Wallet {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  address      String
+  encryptedKey String   // AES-256-GCM, never leaves server
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Currency {
+  code         String  @id // USD | IDR | SGD | EUR | GBP
+  name         String
+  tokenAddress String
+  decimals     Int     @default(6)
+  isActive     Boolean @default(true)
+}
+
+model FxRate {
+  id        String   @id @default(cuid())
+  base      String
+  quote     String
+  rate      Float
+  source    String   @default("frankfurter")
+  fetchedAt DateTime @default(now())
+
+  @@unique([base, quote])
+}
+
+model Recipient {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  country       String
+  walletAddress String?
+  linkedUserId  String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receivedTransfers Transfer[]
+
+  @@index([userId])
+}
+
+model Quote {
+  id            String   @id @default(cuid())
+  userId        String
+  fromCcy       String
+  toCcy         String
+  amountIn      String   // micro-units
+  amountOut     String   // micro-units
+  rate          Float
+  spreadBps     Int
+  feeUsd        Float
+  usdEquivalent Float
+  expiresAt     DateTime
+  executionMode String   @default("pending") // dex | treasury | pending
+  createdAt     DateTime @default(now())
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transfers Transfer[]
+}
+
+model Transfer {
+  id            String    @id @default(cuid())
+  userId        String
+  recipientId   String
+  quoteId       String
+  status        String    @default("quoted") // quoted | compliance_check | awaiting_verification | pending_review | submitted | settled | failed | blocked
+  txHash        String?
+  submitTxHash  String?   // debit leg user -> treasury/recipient
+  swapTxHash    String?   // swap leg (if any)
+  outTxHash     String?   // credit leg treasury -> recipient
+  submittedAt   DateTime?
+  settledAt     DateTime?
+  memo          String?
+  executionMode String?   // dex | treasury
+  createdAt     DateTime  @default(now())
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipient Recipient      @relation(fields: [recipientId], references: [id])
+  quote    Quote           @relation(fields: [quoteId], references: [id])
+  events   TransferEvent[]
+  riskDecisions RiskDecision[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model TransferEvent {
+  id         String   @id @default(cuid())
+  transferId String
+  status     String
+  detail     String   @default("{}") // json
+  createdAt  DateTime @default(now())
+
+  transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@index([transferId])
+}
+
+model RiskDecision {
+  id            String   @id @default(cuid())
+  transferId    String?
+  userId        String
+  outcome       String   // ALLOW | STEP_UP | HOLD_REVIEW | BLOCK
+  reasonCodes   String   @default("[]") // json array
+  inputSnapshot String   @default("{}") // json
+  createdAt     DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transfer Transfer? @relation(fields: [transferId], references: [id])
+
+  @@index([userId])
+}
+
+model ScreeningEntry {
+  id     String @id @default(cuid())
+  name   String @unique
+  reason String
+  action String @default("HOLD_REVIEW") // HOLD_REVIEW | BLOCK
+}
+
+model AppConfig {
+  key   String @id
+  value String
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  entity    String
+  entityId  String?
+  meta      String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
