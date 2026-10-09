@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { TestnetBanner } from "@/components/qila/TestnetBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,25 +18,36 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "QilaPay — Remittance adaptif di Tempo Testnet",
+    default: "QilaPay, International Remittance",
     template: "%s · QilaPay",
   },
   description:
-    "Kirim uang lintas mata uang dengan settlement hitungan detik di Tempo Testnet (Moderato), kurs transparan, dan KYC adaptif yang naik hanya saat dibutuhkan.",
+    "Send money across currencies with settlement in seconds on Tempo Testnet, transparent rates, and adaptive KYC that steps up only when needed.",
   keywords: ["QilaPay", "Tempo", "stablecoin", "remittance", "TIP-20", "adaptive KYC"],
 };
 
+/**
+ * Root layout. The TestnetBanner is sticky at the very top; the floating
+ * capsule header is fixed below it (see SiteHeader offset). Main carries
+ * top padding for both. Header and footer are session-aware and render on
+ * every route, including /login and /register.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
+        <div className="flex min-h-screen flex-col">
+          <TestnetBanner />
+          <SiteHeader />
+          <main className="flex-1 pt-[125px]">{children}</main>
+          <SiteFooter />
+        </div>
         <Toaster />
       </body>
     </html>

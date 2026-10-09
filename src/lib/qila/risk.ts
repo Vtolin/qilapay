@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getConfig, getConfigNumber, getConfigJson } from "./config";
+import { screeningMatches, isOverTopTier } from "./validation";
 import { toUsd, type FxSnapshot } from "./fx";
 
 /**
@@ -21,23 +22,23 @@ export type ReasonCode =
   | "SANCTIONS_BLOCK";
 
 export const REASON_LABELS: Record<ReasonCode, string> = {
-  LIMIT_PER_TX: "Jumlah transfer melebihi limit per transaksi tier kamu.",
-  LIMIT_ROLLING_30D: "Total transfer 30 hari terakhir melebihi limit tier kamu.",
-  VELOCITY_HIGH: "Terdeteksi pola pengiriman sangat cepat berulang (velocity tinggi).",
-  NEW_RECIPIENT_LARGE: "Penerima baru dengan nominal yang relatif besar.",
-  CORRIDOR_RISK: "Koridor tujuan berada di daftar koridor risiko tinggi.",
-  SCREENING_HIT: "Nama penerima cocok dengan daftar screening (watchlist internal).",
-  SANCTIONS_BLOCK: "Nama penerima cocok dengan daftar sanksi — transfer diblokir.",
+  LIMIT_PER_TX: "Transfer amount is above your tier per transfer limit.",
+  LIMIT_ROLLING_30D: "Your last 30 days of transfers are above your tier limit.",
+  VELOCITY_HIGH: "Repeated fast sends detected (high velocity).",
+  NEW_RECIPIENT_LARGE: "A new recipient with a relatively large amount.",
+  CORRIDOR_RISK: "Destination corridor is on the high risk list.",
+  SCREENING_HIT: "Recipient name matches the screening list (internal watchlist).",
+  SANCTIONS_BLOCK: "Recipient name matches the sanctions list. Transfer is blocked.",
 };
 
 export const REASON_METHOD_HINT: Record<ReasonCode, string> = {
-  LIMIT_PER_TX: "Naik tier untuk membuka limit lebih besar.",
-  LIMIT_ROLLING_30D: "Naik tier untuk membuka limit 30 hari lebih besar.",
-  VELOCITY_HIGH: "Verifikasi cepat untuk konfirmasi aktivitas ini benar milikmu.",
-  NEW_RECIPIENT_LARGE: "Verifikasi cepat untuk penerima baru dengan nominal besar.",
-  CORRIDOR_RISK: "Koridor ini butuh verifikasi tambahan sebelum diproses.",
-  SCREENING_HIT: "Transfer masuk antrean review tim compliance.",
-  SANCTIONS_BLOCK: "Transfer tidak dapat dilanjutkan.",
+  LIMIT_PER_TX: "Move up a tier to unlock a larger limit.",
+  LIMIT_ROLLING_30D: "Move up a tier to unlock a larger 30 day limit.",
+  VELOCITY_HIGH: "A quick check to confirm this activity is really yours.",
+  NEW_RECIPIENT_LARGE: "A quick check for a new recipient with a large amount.",
+  CORRIDOR_RISK: "This corridor needs extra verification before processing.",
+  SCREENING_HIT: "Transfer goes to the compliance review queue.",
+  SANCTIONS_BLOCK: "Transfer cannot proceed.",
 };
 
 export type Decision = {
@@ -49,13 +50,13 @@ export type Decision = {
 };
 
 export const METHOD_LABELS: Record<string, string> = {
-  selfie_liveness: "Selfie liveness / estimasi usia",
-  age_estimation: "Estimasi usia",
-  id_face_match: "Dokumen identitas + face match",
-  bank_micro_deposit: "Verifikasi rekening bank (micro-deposit)",
-  proof_of_address: "Bukti alamat",
-  source_of_funds: "Surat sumber dana",
-  video_call: "Video call dengan reviewer",
+  selfie_liveness: "Selfie liveness / age estimation",
+  age_estimation: "Age estimation",
+  id_face_match: "ID plus face match",
+  bank_micro_deposit: "Bank account check (micro deposit)",
+  proof_of_address: "Proof of address",
+  source_of_funds: "Source of funds letter",
+  video_call: "Video call with a reviewer",
 };
 
 export async function getRollingUsage(userId: string): Promise<number> {
@@ -74,7 +75,10 @@ export async function getRollingUsage(userId: string): Promise<number> {
 export async function getVelocityCount(userId: string): Promise<number> {
   const windowMin = await getConfigNumber("velocity_window_minutes") || 10;
   const since = new Date(Date.now() - windowMin * 60 * 1000);
-  return db.transfer.count({ where: { userId, createdAt: { gte: since } } });
+  // Audit M3: terminal failed/blocked rows are not velocity signal.
+  return db.transfer.count({
+    where: { userId, createdAt: { gte: since }, status: { notIn: ["failed", "blocked"] } },
+  });
 }
 
 function pickTargetTier(
@@ -115,10 +119,10 @@ export async function evaluateTransfer(input: {
   let outcome: Decision["outcome"] = "ALLOW";
   const recipientAgeMin = (Date.now() - input.recipientCreatedAt.getTime()) / 60000;
 
-  // 1) screening list (case-insensitive name match)
+  // 1) screening list (normalized match: case/space/punctuation/diacritics)
   const allEntries = await db.screeningEntry.findMany();
-  const hit = allEntries.find(
-    (e) => e.name.toLowerCase() === input.recipientName.trim().toLowerCase(),
+  const hit = allEntries.find((e) =>
+    screeningMatches(e.name, input.recipientName),
   );
   if (hit) {
     if (hit.action === "BLOCK") {
@@ -141,6 +145,21 @@ export async function evaluateTransfer(input: {
     usage,
     tiers.map((t) => ({ tier: t.tier, perTxLimitUsd: t.perTxLimitUsd, rolling30dLimitUsd: t.rolling30dLimitUsd })),
   );
+  // Audit M3: amounts above the TOP tier ceiling can never be satisfied by
+  // step-up — hard BLOCK instead of offering an unreachable tier.
+  const sorted = [...tiers].sort((a, b) => a.tier - b.tier);
+  const topTier = sorted[sorted.length - 1];
+  if (topTier) {
+    const over = isOverTopTier(input.amountUsd, usage, topTier);
+    if (over.overPerTx) {
+      if (!reasonCodes.includes("LIMIT_PER_TX")) reasonCodes.push("LIMIT_PER_TX");
+      return finish("BLOCK", [], topTier.tier);
+    }
+    if (over.overRolling) {
+      if (!reasonCodes.includes("LIMIT_ROLLING_30D")) reasonCodes.push("LIMIT_ROLLING_30D");
+      return finish("BLOCK", [], topTier.tier);
+    }
+  }
   if (input.amountUsd > currentTierCfg.perTxLimitUsd) {
     reasonCodes.push("LIMIT_PER_TX");
     if (outcome === "ALLOW") outcome = "STEP_UP";

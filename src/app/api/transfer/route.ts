@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireUser } from "@/lib/qila/session";
@@ -16,26 +16,40 @@ export async function POST(req: NextRequest) {
     };
 
     const quote = await db.quote.findUnique({ where: { id: body.quoteId } });
-    if (!quote || quote.userId !== user.id) return fail("Quote tidak ditemukan", 404);
+    if (!quote || quote.userId !== user.id) return fail("Quote not found", 404);
     if (quote.expiresAt.getTime() < Date.now()) {
-      return fail("Quote kedaluwarsa — silakan buat quote baru", 410);
+      return fail("Quote expired. Please create a new quote", 410);
     }
     const recipient = await db.recipient.findUnique({ where: { id: body.recipientId } });
-    if (!recipient || recipient.userId !== user.id) return fail("Penerima tidak ditemukan", 404);
+    if (!recipient || recipient.userId !== user.id) return fail("Recipient not found", 404);
     if (user.currentTier === null || user.currentTier === undefined) {
-      return fail("User tidak punya tier", 400);
+      return fail("User has no tier", 400);
     }
 
+    // Audit H2: a quote funds at most one transfer. Pre-check for a clean
+    // error today; the @unique(quoteId) constraint + P2002 handler below
+    // close the race once migrated.
+    const quoteUsed = await db.transfer.findFirst({ where: { quoteId: quote.id } });
+    if (quoteUsed) return fail("Quote already used. Create a new quote", 409);
+
     // transfer record: quoted -> compliance_check
-    const transfer = await db.transfer.create({
-      data: {
-        userId: user.id,
-        recipientId: recipient.id,
-        quoteId: quote.id,
-        status: "quoted",
-        memo: null,
-      },
-    });
+    let transfer;
+    try {
+      transfer = await db.transfer.create({
+        data: {
+          userId: user.id,
+          recipientId: recipient.id,
+          quoteId: quote.id,
+          status: "quoted",
+          memo: null,
+        },
+      });
+    } catch (e) {
+      if ((e as { code?: string })?.code === "P2002") {
+        return fail("Quote already used. Create a new quote", 409);
+      }
+      throw e;
+    }
     // memo must match what goes on-chain: QILA-<last10 of id uppercase>
     const memoOnChain = `QILA-${transfer.id.replace(/-/g, "").slice(-10).toUpperCase()}`;
     await db.transfer.update({ where: { id: transfer.id }, data: { memo: memoOnChain } });

@@ -1,10 +1,12 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { setSessionCookie, clearSessionCookie } from "@/lib/qila/session";
 import { createWalletCredentials, faucetFund } from "@/lib/qila/tempo";
 import { encryptSecret } from "@/lib/qila/crypto";
 import { hashPassword, seedPersonas, seedBase } from "@/lib/qila/seed";
+import { verifyPasswordSync } from "@/lib/qila/password";
+import { checkRateLimit } from "@/lib/qila/rate-limit";
 
 /** Auth: register | login | logout | persona-login (demo) */
 
@@ -27,26 +29,35 @@ export async function POST(req: NextRequest) {
     if (body.action === "persona") {
       // Demo persona login (DEMO_MODE only)
       if ((process.env.DEMO_MODE || "").toLowerCase() !== "true") {
-        return fail("Persona login hanya tersedia di demo mode", 403);
+        return fail("Persona login is only available in demo mode", 403);
       }
       await lazySeed();
       const user = await db.user.findUnique({
         where: { email: `${body.persona}@qilapay.demo` },
       });
-      if (!user) return fail("Persona tidak ditemukan", 404);
+      if (!user) return fail("Persona not found", 404);
       await setSessionCookie(user.id);
       return ok({ userId: user.id, persona: body.persona });
     }
 
     const email = (body.email || "").trim().toLowerCase();
     const password = body.password || "";
-    if (!email || !password) return fail("Email dan password wajib diisi");
+    if (!email || !password) return fail("Email and password are required");
+
+    // M5: per-account + global throttling on all credential actions.
+    const throttleKey = `auth:${body.action}:${email || "unknown"}`;
+    if (!checkRateLimit(throttleKey, { limit: 20, windowMs: 10 * 60 * 1000 }).allowed) {
+      return fail("Too many attempts. Try again later", 429);
+    }
+    if (!checkRateLimit("auth:global", { limit: 200, windowMs: 10 * 60 * 1000 }).allowed) {
+      return fail("Too many attempts. Try again later", 429);
+    }
 
     if (body.action === "register") {
       await lazySeed();
-      if (password.length < 8) return fail("Password minimal 8 karakter");
+      if (password.length < 8) return fail("Password must be at least 8 characters");
       const existing = await db.user.findUnique({ where: { email } });
-      if (existing) return fail("Email sudah terdaftar");
+      if (existing) return fail("Email is already registered");
       const user = await db.user.create({
         data: {
           email,
@@ -78,8 +89,8 @@ export async function POST(req: NextRequest) {
     if (body.action === "login") {
       await lazySeed();
       const user = await db.user.findUnique({ where: { email } });
-      if (!user || user.passwordHash !== hashPassword(email, password)) {
-        return fail("Email atau password salah", 401);
+      if (!user || !verifyPasswordSync(email, password, user.passwordHash)) {
+        return fail("Email or password is wrong", 401);
       }
       await setSessionCookie(user.id);
       return ok({ userId: user.id });

@@ -65,10 +65,10 @@ export function DashboardView({
             Dashboard
           </Eyebrow>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-qila-ink">
-            Halo, {user.fullName.split(" ")[0]}
+            Welcome, {user.fullName.split(" ")[0]}
           </h1>
           <p className="text-sm text-qila-muted">
-            Wallet Tempo:{" "}
+            Tempo wallet:{" "}
             <code className="rounded bg-qila-blue-soft/70 px-1.5 py-0.5 font-bold text-qila-blue-dark">
               {shortenAddress(user.walletAddress || "")}
             </code>{" "}
@@ -76,16 +76,16 @@ export function DashboardView({
           </p>
         </div>
         <QButton size="lg" onClick={onGoSend}>
-          Kirim uang →
+          Send money
         </QButton>
       </div>
 
       {/* balances */}
       <section className="rounded-3xl border border-qila-line bg-white p-6 shadow-[0_4px_14px_rgba(10,20,48,0.06)]">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-extrabold text-qila-ink">Saldo on-chain</h2>
+          <h2 className="text-lg font-extrabold text-qila-ink">Onchain balances</h2>
           <span className="text-xs font-semibold text-qila-muted">
-            TIP-20 di Tempo Moderato · live dari RPC
+            TIP-20 on Tempo Moderato, live from RPC
           </span>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -101,7 +101,7 @@ export function DashboardView({
                     disabled={toppingUp !== null}
                     className="text-[11px] font-bold text-qila-blue hover:underline disabled:opacity-50"
                   >
-                    {toppingUp === b.code ? "…" : "+ top up"}
+                    {toppingUp === b.code ? "..." : "+ top up"}
                   </button>
                 )}
                 {b.code === "USD" && (
@@ -110,7 +110,7 @@ export function DashboardView({
                     disabled={toppingUp !== null}
                     className="text-[11px] font-bold text-qila-blue hover:underline disabled:opacity-50"
                   >
-                    {toppingUp === "USD" ? "…" : "+ faucet"}
+                    {toppingUp === "USD" ? "..." : "+ faucet"}
                   </button>
                 )}
               </div>
@@ -127,14 +127,14 @@ export function DashboardView({
         {/* recent transfers */}
         <section className="rounded-3xl border border-qila-line bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-qila-ink">Transfer terakhir</h2>
+            <h2 className="text-lg font-extrabold text-qila-ink">Recent transfers</h2>
             <button onClick={onGoTransfers} className="text-sm font-bold text-qila-blue hover:underline">
-              Lihat semua →
+              View all
             </button>
           </div>
           {(session.recentTransfers || []).length === 0 ? (
             <p className="rounded-2xl bg-background p-6 text-center text-sm text-qila-muted">
-              Belum ada transfer. Coba kirim kecil dari menu Kirim — tanpa layar KYC.
+              No transfers yet. Try a small send from the Send menu, no KYC screen needed.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -164,13 +164,13 @@ export function DashboardView({
         {/* tier & limits */}
         <section className="space-y-6">
           <div className="rounded-3xl border border-qila-line bg-white p-6">
-            <h2 className="text-lg font-extrabold text-qila-ink">Limit tier kamu</h2>
+            <h2 className="text-lg font-extrabold text-qila-ink">Your tier limits</h2>
             {tier && (
               <>
                 <div className="mt-4 space-y-4">
                   <div>
                     <div className="mb-1 flex justify-between text-sm">
-                      <span className="font-bold text-qila-ink">Rolling 30 hari</span>
+                      <span className="font-bold text-qila-ink">Rolling 30 days</span>
                       <span className="text-qila-muted">
                         {formatUsdShort(usage)} / {formatUsdShort(tier.rolling30dLimitUsd)}
                       </span>
@@ -184,7 +184,7 @@ export function DashboardView({
                   </div>
                   <div>
                     <div className="mb-1 flex justify-between text-sm">
-                      <span className="font-bold text-qila-ink">Limit per transaksi</span>
+                      <span className="font-bold text-qila-ink">Per transfer limit</span>
                       <span className="text-qila-muted">{formatUsdShort(tier.perTxLimitUsd)}</span>
                     </div>
                     <div className="h-2.5 overflow-hidden rounded-full bg-qila-blue-soft/70">
@@ -194,37 +194,37 @@ export function DashboardView({
                 </div>
                 {nextTier ? (
                   <div className="mt-5 rounded-2xl bg-qila-good-soft p-4 text-sm">
-                    <p className="font-bold text-qila-good">
-                      Naik ke Tier {nextTier.tier} ({nextTier.name}) membuka:
+                      <p className="font-bold text-qila-good">
+                        Tier {nextTier.tier} ({nextTier.name}) unlocks:
+                      </p>
+                      <p className="text-qila-good/90">
+                        {formatUsdShort(nextTier.perTxLimitUsd)} per transfer,{" "}
+                        {formatUsdShort(nextTier.rolling30dLimitUsd)} per 30 days
+                      </p>
+                      <QButton size="sm" className="mt-3" onClick={onGoVerify}>
+                        How to move up
+                      </QButton>
+                    </div>
+                  ) : (
+                    <p className="mt-5 rounded-2xl bg-qila-good-soft p-4 text-sm font-bold text-qila-good">
+                      You are on the highest tier.
                     </p>
-                    <p className="text-qila-good/90">
-                      {formatUsdShort(nextTier.perTxLimitUsd)} per transaksi ·{" "}
-                      {formatUsdShort(nextTier.rolling30dLimitUsd)} per 30 hari
-                    </p>
-                    <QButton size="sm" className="mt-3" onClick={onGoVerify}>
-                      Lihat cara naik tier →
-                    </QButton>
-                  </div>
-                ) : (
-                  <p className="mt-5 rounded-2xl bg-qila-good-soft p-4 text-sm font-bold text-qila-good">
-                    Kamu sudah di tier tertinggi.
-                  </p>
-                )}
+                  )}
               </>
             )}
           </div>
 
           {session.pendingVerifications && session.pendingVerifications.length > 0 && (
             <div className="rounded-3xl border border-qila-warn/30 bg-qila-warn-soft p-6">
-              <h2 className="text-lg font-extrabold text-qila-warn">
-                {session.pendingVerifications.length} verifikasi menunggu simulasi
-              </h2>
-              <p className="mt-1 text-sm text-qila-warn/80">
-                Buka pusat verifikasi untuk mensimulasikan hasil provider.
-              </p>
-              <QButton size="sm" className="mt-3" onClick={onGoVerify}>
-                Buka verifikasi →
-              </QButton>
+                <h2 className="text-lg font-extrabold text-qila-warn">
+                  {session.pendingVerifications.length} verification(s) waiting for simulation
+                </h2>
+                <p className="mt-1 text-sm text-qila-warn/80">
+                  Open the verification center to simulate the provider result.
+                </p>
+                <QButton size="sm" className="mt-3" onClick={onGoVerify}>
+                  Open verification
+                </QButton>
             </div>
           )}
         </section>

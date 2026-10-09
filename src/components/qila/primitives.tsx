@@ -1,72 +1,25 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+/**
+ * Domain view primitives. Canonical design system lives in
+ * `@/components/brand` (ported from qpfrontendold "Trustful Blue").
+ * This module keeps existing `qila/*` import paths working and maps
+ * legacy tone names to brand tokens. New code should import from
+ * `@/components/brand` directly.
+ */
+
+import { Button as BrandButton } from "@/components/brand/Button";
+import { Eyebrow as BrandEyebrow } from "@/components/brand/Eyebrow";
+import { SectionHeading as BrandHeading } from "@/components/brand/SectionHeading";
 import { cn } from "@/lib/utils";
 
-/** Eyebrow: small uppercase label with dot, from boilerplate design. */
-export function Eyebrow({
-  children,
-  tone = "blue",
-  className,
-}: {
-  children: React.ReactNode;
-  tone?: "blue" | "sky" | "night";
-  className?: string;
-}) {
-  const tones = {
-    blue: "bg-qila-blue-soft text-qila-blue-dark",
-    sky: "bg-qila-sky-soft text-qila-sky-deep",
-    night: "bg-qila-night-soft text-qila-sky",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.12em]",
-        tones[tone],
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
+export const Eyebrow = BrandEyebrow;
+export const SectionHeading = BrandHeading;
 
-/** Section heading block. */
-export function SectionHeading({
-  eyebrow,
-  title,
-  subtitle,
-  align = "left",
-  dark = false,
-}: {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
-  align?: "left" | "center";
-  dark?: boolean;
-}) {
-  return (
-    <div className={cn("max-w-2xl", align === "center" && "mx-auto text-center")}>
-      {eyebrow ? (
-        <Eyebrow tone={dark ? "night" : "blue"} className="mb-4">
-          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          {eyebrow}
-        </Eyebrow>
-      ) : null}
-      <h2
-        className={cn(
-          "text-3xl font-extrabold tracking-tight sm:text-4xl",
-          dark ? "text-white" : "text-qila-ink",
-        )}
-      >
-        {title}
-      </h2>
-      {subtitle ? (
-        <p className={cn("mt-3 text-lg", dark ? "text-white/70" : "text-qila-muted")}>{subtitle}</p>
-      ) : null}
-    </div>
-  );
-}
+export { Card } from "@/components/brand/Card";
+export { StatusBadge } from "@/components/brand/StatusBadge";
+export { FormField, inputStyles } from "@/components/brand/FormField";
+export { Button as BrandButton } from "@/components/brand/Button";
 
 /** Status pill used across transfers/verifications. */
 export function Pill({
@@ -88,7 +41,7 @@ export function Pill({
   );
 }
 
-/** Primary/dark/ghost button unified. */
+/** Primary/dark/ghost button unified (maps legacy variants to brand). */
 export function QButton({
   children,
   onClick,
@@ -106,26 +59,57 @@ export function QButton({
   className?: string;
   type?: "button" | "submit";
 }) {
-  const variants = {
-    primary: "",
-    dark: "bg-qila-night text-white hover:bg-qila-night-soft",
-    ghost: "bg-transparent text-qila-ink hover:bg-qila-blue-soft",
-    danger: "bg-qila-bad text-white hover:bg-qila-bad/90",
-    outline: "border border-qila-line bg-white text-qila-ink hover:bg-qila-blue-soft",
-  };
-  const sizes = {
-    sm: "h-8 px-3 text-sm",
-    md: "h-11 px-5",
-    lg: "h-12 px-7 text-base",
-  };
+  if (variant === "danger") {
+    return (
+      <BrandButton
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        className={cn("border-transparent bg-red-600 text-white hover:bg-red-700", className)}
+        size={size === "sm" ? "sm" : size === "lg" ? "lg" : "md"}
+      >
+        {children}
+      </BrandButton>
+    );
+  }
+  if (variant === "ghost") {
+    return (
+      <BrandButton
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        variant="secondary"
+        className={className}
+        size={size === "sm" ? "sm" : size === "lg" ? "lg" : "md"}
+      >
+        {children}
+      </BrandButton>
+    );
+  }
+  if (variant === "outline") {
+    return (
+      <BrandButton
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        variant="secondary"
+        className={cn("border-line", className)}
+        size={size === "sm" ? "sm" : size === "lg" ? "lg" : "md"}
+      >
+        {children}
+      </BrandButton>
+    );
+  }
   return (
-    <Button
-      type={type || "button"}
+    <BrandButton
+      type={type}
       onClick={onClick}
       disabled={disabled}
-      className={cn("rounded-full font-bold", variants[variant], sizes[size], className)}
+      variant={variant === "dark" ? "dark" : "primary"}
+      className={className}
+      size={size === "sm" ? "sm" : size === "lg" ? "lg" : "md"}
     >
       {children}
-    </Button>
+    </BrandButton>
   );
 }

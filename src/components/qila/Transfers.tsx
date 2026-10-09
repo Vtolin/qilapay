@@ -14,14 +14,14 @@ import {
 const EXPLORER = "https://explore.testnet.tempo.xyz";
 
 const EVENT_LABELS: Record<string, string> = {
-  quoted: "Quote dibuat",
-  compliance_check: "Decision engine menilai transfer",
-  awaiting_verification: "Menunggu verifikasi step-up",
-  pending_review: "Masuk antrean review admin",
-  submitted: "Dikirim ke Tempo (on-chain)",
-  settled: "Settled — dana sampai di penerima",
-  failed: "Eksekusi gagal",
-  blocked: "Diblokir",
+  quoted: "Quote created",
+  compliance_check: "Decision engine scored the transfer",
+  awaiting_verification: "Waiting for step up verification",
+  pending_review: "Queued for admin review",
+  submitted: "Submitted on Tempo (onchain)",
+  settled: "Settled, funds with the recipient",
+  failed: "Execution failed",
+  blocked: "Blocked",
 };
 
 export function TransfersView({ openId }: { openId?: string | null }) {
@@ -60,18 +60,18 @@ export function TransfersView({ openId }: { openId?: string | null }) {
           onClick={() => setSelected(null)}
           className="text-sm font-bold text-qila-blue hover:underline"
         >
-          ← Kembali ke daftar
+          Back to list
         </button>
         <div className="rounded-3xl border border-qila-line bg-white p-6 shadow-[0_4px_14px_rgba(10,20,48,0.06)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <Eyebrow tone="blue">Detail transfer</Eyebrow>
+              <Eyebrow tone="blue">Transfer detail</Eyebrow>
               <h1 className="mt-2 text-2xl font-extrabold text-qila-ink">
                 {formatMoney(Number(t.quote?.amountIn || 0) / 1e6, t.quote?.fromCcy || "USD")} →{" "}
                 {formatMoney(Number(t.quote?.amountOut || 0) / 1e6, t.quote?.toCcy || "USD")}
               </h1>
               <p className="text-sm text-qila-muted">
-                Ke {t.recipient?.name} · {t.recipient?.country}
+                To {t.recipient?.name} {t.recipient?.country}
               </p>
             </div>
             <Pill className={TRANSFER_STATUS_TONES[t.status] || "bg-qila-blue-soft"}>
@@ -81,41 +81,41 @@ export function TransfersView({ openId }: { openId?: string | null }) {
 
           <div className="mt-5 grid gap-3 rounded-2xl bg-background p-4 text-sm sm:grid-cols-2">
             <Detail k="Transfer ID" v={t.id} />
-            <Detail k="Memo on-chain" v={t.memo || "—"} />
+            <Detail k="Onchain memo" v={t.memo || "-"} />
             <Detail
-              k="Mode eksekusi"
+              k="Execution mode"
               v={
                 t.executionMode === "dex"
-                  ? "DEX Tempo"
+                  ? "Tempo DEX"
                   : t.executionMode === "treasury"
                     ? "Treasury fallback"
                     : t.quote?.fromCcy === t.quote?.toCcy
-                      ? "Transfer langsung"
-                      : "—"
+                      ? "Direct transfer"
+                      : "-"
               }
             />
             <Detail
               k="Settlement"
               v={
                 t.submittedAt && t.settledAt
-                  ? `${((new Date(t.settledAt).getTime() - new Date(t.submittedAt).getTime()) / 1000).toFixed(2)} detik`
-                  : "—"
+                  ? `${((new Date(t.settledAt).getTime() - new Date(t.submittedAt).getTime()) / 1000).toFixed(2)}s`
+                  : "-"
               }
             />
-            <Detail k="Kurs terkunci" v={t.quote ? `1 ${t.quote.fromCcy} = ${t.quote.rate} ${t.quote.toCcy}` : "—"} />
-            <Detail k="Spread" v={t.quote ? `${t.quote.spreadBps} bps` : "—"} />
-            <Detail k="Dibuat" v={formatDateTime(t.createdAt)} />
+            <Detail k="Locked rate" v={t.quote ? `1 ${t.quote.fromCcy} = ${t.quote.rate} ${t.quote.toCcy}` : "-"} />
+            <Detail k="Spread" v={t.quote ? `${t.quote.spreadBps} bps` : "-"} />
+            <Detail k="Created" v={formatDateTime(t.createdAt)} />
             <Detail
-              k="Settled pada"
-              v={t.settledAt ? formatDateTime(t.settledAt) : "—"}
+              k="Settled at"
+              v={t.settledAt ? formatDateTime(t.settledAt) : "-"}
             />
           </div>
 
           {[
-            t.txHash && "Tx utama",
-            t.submitTxHash && "Tx debit pengirim",
-            t.swapTxHash && "Tx swap DEX",
-            t.outTxHash && "Tx kredit penerima",
+            t.txHash && "Main tx",
+            t.submitTxHash && "Sender debit tx",
+            t.swapTxHash && "DEX swap tx",
+            t.outTxHash && "Recipient credit tx",
           ]
             .filter(Boolean)
             .map((label, i) => {
@@ -166,7 +166,7 @@ export function TransfersView({ openId }: { openId?: string | null }) {
                         try {
                           const d = JSON.parse(e.detail) as { settlementSeconds?: number };
                           return d.settlementSeconds != null
-                            ? `${d.settlementSeconds.toFixed(2)} detik`
+                            ? `${d.settlementSeconds.toFixed(2)}s`
                             : "";
                         } catch {
                           return "";
@@ -187,14 +187,14 @@ export function TransfersView({ openId }: { openId?: string | null }) {
     <div className="qila-container max-w-4xl space-y-6 py-8">
       <Eyebrow tone="blue">
         <span className="h-1.5 w-1.5 rounded-full bg-current" />
-        Riwayat transfer
+        Transfer history
       </Eyebrow>
-      <h1 className="text-3xl font-extrabold tracking-tight text-qila-ink">Semua transfer</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight text-qila-ink">All transfers</h1>
       {loading ? (
-        <p className="text-sm text-qila-muted">Memuat…</p>
+        <p className="text-sm text-qila-muted">Loading...</p>
       ) : transfers.length === 0 ? (
         <div className="rounded-3xl border border-qila-line bg-white p-10 text-center">
-          <p className="text-qila-muted">Belum ada transfer.</p>
+          <p className="text-qila-muted">No transfers yet.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-qila-line bg-white">

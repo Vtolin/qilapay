@@ -1,9 +1,10 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireUser } from "@/lib/qila/session";
 import { getFxSnapshot, convert, toUsd } from "@/lib/qila/fx";
 import { getConfig, getConfigNumber } from "@/lib/qila/config";
+import { amountToMicro, microToMajor } from "@/lib/qila/validation";
 import { SUPPORTED_CCY } from "@/lib/qila/fx";
 import { getTokenBalance } from "@/lib/qila/tempo";
 
@@ -21,21 +22,29 @@ export async function POST(req: NextRequest) {
     const { fromCcy, toCcy } = body;
     const amount = Number(body.amount);
     if (!SUPPORTED_CCY.includes(fromCcy as never) || !SUPPORTED_CCY.includes(toCcy as never)) {
-      return fail("Mata uang tidak didukung");
+      return fail("Currency not supported");
     }
     if (!Number.isFinite(amount) || amount <= 0) {
-      return fail("Nominal harus lebih dari 0");
+      return fail("Amount must be above 0");
     }
 
-    // on-chain balance check (amount + fee buffer)
+    // Audit M4: strict amount parsing (bigint micro-units, no float drift).
+    let amountInMicro: bigint;
+    try {
+      amountInMicro = amountToMicro(body.amount);
+    } catch {
+      return fail("Invalid amount");
+    }
+
+    // on-chain balance check in micro-units (exact; fee comes out of amountOut)
     const wallet = await db.wallet.findUnique({ where: { userId: user.id } });
     const sourceCcy = await db.currency.findUnique({ where: { code: fromCcy } });
     if (wallet && sourceCcy) {
       const bal = await getTokenBalance(sourceCcy.tokenAddress, wallet.address);
-      const balNum = Number(bal) / 1e6;
-      if (balNum < amount + 1) {
+      if (bal < amountInMicro) {
+        const balNum = microToMajor(bal);
         return fail(
-          `Saldo ${fromCcy} tidak cukup (${balNum.toLocaleString("id-ID")} tersedia). Gunakan tombol top up di dashboard.`,
+          `Saldo ${fromCcy} is insufficient (${balNum.toLocaleString("id-ID")} available). Use the top up button on the dashboard.`,
           400,
           { insufficientBalance: true },
         );
@@ -67,7 +76,7 @@ export async function POST(req: NextRequest) {
     let executionMode = "pending";
     if (source && dest && fromCcy !== toCcy) {
       const { tryDexQuote } = await import("@/lib/qila/tempo");
-      const q = await tryDexQuote(source.tokenAddress, dest.tokenAddress, BigInt(Math.round(amount * 1e6)));
+      const q = await tryDexQuote(source.tokenAddress, dest.tokenAddress, amountInMicro);
       executionMode = q.available ? "dex" : "treasury";
     } else if (fromCcy === toCcy) {
       executionMode = "direct";
@@ -78,8 +87,8 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         fromCcy,
         toCcy,
-        amountIn: String(Math.round(amount * 1e6)),
-        amountOut: String(Math.round(amountOut * 1e6)),
+        amountIn: String(amountInMicro),
+        amountOut: String(amountToMicro(amountOut.toFixed(6))),
         rate: customerRate,
         spreadBps,
         feeUsd,

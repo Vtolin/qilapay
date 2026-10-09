@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireAdmin } from "@/lib/qila/session";
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (body.type === "verification") {
       const v = await db.kycVerification.findUnique({ where: { id: body.id } });
-      if (!v) return fail("Verifikasi tidak ditemukan", 404);
+      if (!v) return fail("Verification not found", 404);
       const statusMap = {
         approve: "approved",
         reject: "rejected",
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       const t = await db.transfer.findUnique({ where: { id: body.id } });
       if (!t) return fail("Transfer tidak ditemukan", 404);
       if (t.status !== "pending_review") {
-        return fail(`Transfer dalam status ${t.status}, bukan pending_review`, 409);
+        return fail(`Transfer is in status ${t.status}, not pending_review`, 409);
       }
       if (body.action === "approve") {
         const result = await runExecution(body.id);

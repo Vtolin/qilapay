@@ -1,17 +1,6 @@
 :81 {
-	@transform_port_query {
-		query XTransformPort=*
-	}
-
-	handle @transform_port_query {
-		reverse_proxy localhost:{query.XTransformPort} {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
-
+	# Audit H6: static upstream only. The previous XTransformPort query-driven
+	# reverse_proxy let clients relay to any localhost port (SSRF/port-scan).
 	handle {
 		reverse_proxy localhost:3000 {
 			header_up Host {host}

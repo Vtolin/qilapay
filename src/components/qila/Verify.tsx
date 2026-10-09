@@ -6,13 +6,13 @@ import { api, type SessionData, type VerificationRecord } from "@/lib/qila/clien
 import { formatDateTime, TIER_LABELS } from "@/lib/qila/format";
 
 const METHOD_LIST = [
-  { key: "selfie_liveness", label: "Selfie liveness", desc: "Deteksi hidup via kamera (simulasi)" },
-  { key: "age_estimation", label: "Estimasi usia", desc: "Estimasi usia dari selfie (simulasi)" },
-  { key: "id_face_match", label: "Dokumen identitas + face match", desc: "KTP/Paspor + selfie cocok (simulasi)" },
-  { key: "bank_micro_deposit", label: "Micro-deposit rekening bank", desc: "Verifikasi kepemilikan rekening (simulasi)" },
-  { key: "proof_of_address", label: "Bukti alamat", desc: "Tagihan/retret resmi (simulasi)" },
-  { key: "source_of_funds", label: "Surat sumber dana", desc: "Dokumen sumber dana (simulasi)" },
-  { key: "video_call", label: "Video call reviewer", desc: "Sesi verifikasi live (simulasi, review admin)" },
+  { key: "selfie_liveness", label: "Selfie liveness", desc: "Camera liveness check (simulated)" },
+  { key: "age_estimation", label: "Age estimation", desc: "Age estimate from a selfie (simulated)" },
+  { key: "id_face_match", label: "ID plus face match", desc: "National ID or passport plus selfie (simulated)" },
+  { key: "bank_micro_deposit", label: "Bank micro deposit", desc: "Confirms bank account ownership (simulated)" },
+  { key: "proof_of_address", label: "Proof of address", desc: "Utility bill or official letter (simulated)" },
+  { key: "source_of_funds", label: "Source of funds", desc: "Source of funds document (simulated)" },
+  { key: "video_call", label: "Reviewer video call", desc: "Live verification session (simulated, admin review)" },
 ];
 
 const STATUS_TONES: Record<string, string> = {
@@ -67,14 +67,14 @@ export function VerifyView({
       <div>
         <Eyebrow tone="blue">
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          Pusat verifikasi
+          Verification center
         </Eyebrow>
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-qila-ink">
-          Naikkan limit dengan verifikasi
+          Raise limits with verification
         </h1>
         <p className="mt-2 max-w-2xl text-qila-muted">
-          Kamu ada di <strong>Tier {userTier} ({TIER_LABELS[userTier]})</strong>. Pilih jalur
-          verifikasi untuk naik tier — semua provider disimulasikan di mode demo.
+          You are on <strong>Tier {userTier} ({TIER_LABELS[userTier]})</strong>. Pick a
+          verification path to move up a tier. All providers are simulated in demo mode.
         </p>
       </div>
 
@@ -97,10 +97,10 @@ export function VerifyView({
             </p>
             <p className="text-lg font-extrabold text-qila-ink">{t.name}</p>
             <p className="mt-1 text-sm font-bold text-qila-blue-dark">
-              ${t.perTxLimitUsd.toLocaleString()} / tx
+              ${t.perTxLimitUsd.toLocaleString()} per tx
             </p>
             <p className="text-xs text-qila-muted">
-              ${t.rolling30dLimitUsd.toLocaleString()} per 30 hari
+              ${t.rolling30dLimitUsd.toLocaleString()} per 30 days
             </p>
             <p className="mt-2 text-xs text-qila-muted">{t.description}</p>
           </div>
@@ -111,10 +111,10 @@ export function VerifyView({
       {nextTier && (
         <section className="rounded-3xl border border-qila-line bg-white p-6">
           <h2 className="text-lg font-extrabold text-qila-ink">
-            Metode untuk Tier {nextTier.tier} ({nextTier.name})
+            Paths to Tier {nextTier.tier} ({nextTier.name})
           </h2>
           <p className="mt-1 text-sm text-qila-muted">
-            {nextTier.description} — pilih salah satu metode di bawah.
+            {nextTier.description} Pick one method below.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {(() => {
@@ -132,7 +132,7 @@ export function VerifyView({
                     <p className="text-xs text-qila-muted">{m.desc}</p>
                   </div>
                   <QButton size="sm" onClick={() => submit(m.key)} disabled={busy}>
-                    Mulai
+                    Start
                   </QButton>
                 </div>
               ));
@@ -143,11 +143,11 @@ export function VerifyView({
 
       {/* history */}
       <section className="rounded-3xl border border-qila-line bg-white p-6">
-        <h2 className="text-lg font-extrabold text-qila-ink">Riwayat verifikasi</h2>
+        <h2 className="text-lg font-extrabold text-qila-ink">Verification history</h2>
         {verifications.length === 0 ? (
           <p className="mt-3 rounded-2xl bg-background p-6 text-center text-sm text-qila-muted">
-            Belum ada verifikasi. Transfer kecil tidak butuh verifikasi apa pun — inilah inti KYC
-            adaptif.
+            No verifications yet. Small transfers need no verification at all. That is the
+            point of adaptive KYC.
           </p>
         ) : (
           <ul className="mt-3 space-y-2">
@@ -160,11 +160,11 @@ export function VerifyView({
                 >
                   <div>
                     <p className="text-sm font-bold text-qila-ink">
-                      {method?.label || v.method} → Tier {v.targetTier}
+                      {method?.label || v.method} to Tier {v.targetTier}
                     </p>
                     <p className="text-xs text-qila-muted">
                       {formatDateTime(v.createdAt)}
-                      {v.reviewedBy ? ` · oleh ${v.reviewedBy}` : ""}
+                      {v.reviewedBy ? ` by ${v.reviewedBy}` : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export function VerifyView({
                     {v.status === "pending" && (
                       <div className="flex gap-1">
                         <QButton size="sm" onClick={() => simulate(v.id, "approve")} disabled={busy}>
-                          ✓ Approve
+                          Approve
                         </QButton>
                         <QButton size="sm" variant="outline" onClick={() => simulate(v.id, "reject")} disabled={busy}>
                           ✕

@@ -128,7 +128,7 @@ model Transfer {
   id            String    @id @default(cuid())
   userId        String
   recipientId   String
-  quoteId       String
+  quoteId       String    @unique // audit H2: a quote funds at most one transfer
   status        String    @default("quoted") // quoted | compliance_check | awaiting_verification | pending_review | submitted | settled | failed | blocked
   txHash        String?
   submitTxHash  String?   // debit leg user -> treasury/recipient

@@ -11,6 +11,8 @@ import {
 } from "./tempo";
 import { refreshFxRates } from "./fx";
 import { encryptSecret } from "./crypto";
+import { hashPasswordSync } from "./password";
+import { requireEnvSecret } from "./validation";
 import { setConfig } from "./config";
 import type { PrivateKey } from "./types";
 
@@ -73,7 +75,8 @@ export const CURRENCY_SEED = [
 
 /** Deterministic private key for demo personas (never used for real users). */
 function personaPrivateKey(personaKey: string): PrivateKey {
-  const secret = process.env.WALLET_ENCRYPTION_KEY || "qilapay";
+  // Audit L3: fail closed in production; dev fallback warns.
+  const secret = requireEnvSecret("WALLET_ENCRYPTION_KEY", { fallback: "qilapay" });
   const hash = createHash("sha256").update(`qilapay:${personaKey}:${secret}`).digest();
   return (`0x${hash.toString("hex")}`) as PrivateKey;
 }
@@ -141,7 +144,8 @@ export const PERSONA_SEED: PersonaSpec[] = [
 const DEMO_PASSWORD = "demo1234";
 
 function hashPassword(email: string, password: string): string {
-  return createHash("sha256").update(`${email.toLowerCase()}:${password}:qilapay`).digest("hex");
+  // scrypt (see ./password); legacy sha256 rows still verify on login.
+  return hashPasswordSync(email, password);
 }
 
 export async function seedBase(): Promise<void> {
@@ -237,14 +241,14 @@ async function ensureRecipients(userId: string, personaKey: string) {
   const { privateKeyToAccount } = await import("viem/accounts");
   for (const r of common) {
     const exists = await db.recipient.findFirst({ where: { userId, name: r.name } });
+    // Audit L3: fail closed in production instead of a public default.
+    const secret = requireEnvSecret("WALLET_ENCRYPTION_KEY", { fallback: "qilapay" });
     if (!exists) {
       // deterministic demo wallet per recipient name
-      const secret = process.env.WALLET_ENCRYPTION_KEY || "qilapay";
       const hash = createHash("sha256").update(`qilapay-recipient:${r.name}:${secret}`).digest();
       const address = privateKeyToAccount((`0x${hash.toString("hex")}`) as `0x${string}`).address;
       await db.recipient.create({ data: { userId, ...r, walletAddress: address } });
     } else if (!exists.walletAddress) {
-      const secret = process.env.WALLET_ENCRYPTION_KEY || "qilapay";
       const hash = createHash("sha256").update(`qilapay-recipient:${r.name}:${secret}`).digest();
       const address = privateKeyToAccount((`0x${hash.toString("hex")}`) as `0x${string}`).address;
       await db.recipient.update({ where: { id: exists.id }, data: { walletAddress: address } });
@@ -318,7 +322,7 @@ export async function seedVelocityHistory(personaKey: string, count = 3): Promis
           submittedAt: new Date(),
           settledAt: new Date(),
           memo: `QILA-VEL${i}`,
-          executionMode: "dex",
+          executionMode: "direct",
         },
       });
       await db.transferEvent.create({

@@ -1,8 +1,13 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireAdmin } from "@/lib/qila/session";
 import { setConfig } from "@/lib/qila/config";
+import {
+  validateConfigPatch,
+  validateTierUpdates,
+  validateScreeningAction,
+} from "@/lib/qila/validation";
 
 /** POST: update tier limits, FX spread/fee, risk corridors, screening list. */
 export async function POST(req: NextRequest) {
@@ -22,7 +27,14 @@ export async function POST(req: NextRequest) {
     };
 
     if (body.action === "tiers" && body.tiers) {
-      for (const t of body.tiers) {
+      // Audit M1: validated ranges — negatives/inversions would corrupt limits.
+      let tiers;
+      try {
+        tiers = validateTierUpdates(body.tiers);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Invalid tier");
+      }
+      for (const t of tiers) {
         await db.kycTierConfig.update({
           where: { tier: t.tier },
           data: {
@@ -44,7 +56,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "config" && body.config) {
-      for (const [key, value] of Object.entries(body.config)) {
+      // Audit M1: allowlisted keys + ranges; unknown/malformed values rejected.
+      let patch: Record<string, string>;
+      try {
+        patch = validateConfigPatch(body.config);
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Invalid config");
+      }
+      for (const [key, value] of Object.entries(patch)) {
         await setConfig(key, value);
       }
       await db.auditLog.create({
@@ -59,16 +78,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "screening_add" && body.screening) {
+      // Audit M1: action constrained to HOLD_REVIEW | BLOCK.
+      let action: "HOLD_REVIEW" | "BLOCK";
+      try {
+        action = validateScreeningAction(body.screening.action || "HOLD_REVIEW");
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : "Invalid action");
+      }
       await db.screeningEntry.upsert({
         where: { name: body.screening.name },
         create: {
           name: body.screening.name,
           reason: body.screening.reason || "Manual admin entry",
-          action: body.screening.action || "HOLD_REVIEW",
+          action,
         },
         update: {
           reason: body.screening.reason || "Manual admin entry",
-          action: body.screening.action || "HOLD_REVIEW",
+          action,
         },
       });
       return ok({ updated: true });

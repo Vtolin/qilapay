@@ -7,6 +7,7 @@
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
+    "test": "node --test tests/security/password.test.mjs tests/security/validation.test.mjs tests/security/rate-limit.test.mjs tests/security/route-guards.test.mjs",
     "db:push": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -83,7 +84,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/react": "^19",
+    "@types/react": "^19.3.0",
     "@types/react-dom": "^19",
     "bun-types": "^1.3.4",
     "eslint": "^9",

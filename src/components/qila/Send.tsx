@@ -45,11 +45,13 @@ export function SendView({
   prefill,
   clearPrefill,
   refresh,
+  onGoTransfers,
 }: {
   session: SessionData;
   prefill: SendPrefill | null;
   clearPrefill: () => void;
   refresh: () => Promise<void>;
+  onGoTransfers?: () => void;
 }) {
   const [step, setStep] = useState<Step>("quote");
   const [fromCcy, setFromCcy] = useState(prefill?.fromCcy || "USD");
@@ -155,7 +157,7 @@ export function SendView({
 
   async function addRecipient() {
     if (!newName.trim()) {
-      setError("Nama penerima wajib diisi");
+      setError("Recipient name is required");
       return;
     }
     setBusy(true);
@@ -178,7 +180,7 @@ export function SendView({
   async function createQuote() {
     setError(null);
     if (!recipientId) {
-      setError("Pilih penerima dulu");
+      setError("Pick a recipient first");
       return;
     }
     setBusy(true);
@@ -272,11 +274,11 @@ export function SendView({
       <div>
         <Eyebrow tone="blue">
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          Kirim uang
+          Send money
         </Eyebrow>
         {scenarioLabel && (
           <p className="mt-3 inline-flex rounded-full bg-qila-sky-soft px-3 py-1 text-sm font-bold text-qila-sky-deep">
-            Skenario: {scenarioLabel}
+            Scenario: {scenarioLabel}
           </p>
         )}
       </div>
@@ -286,7 +288,7 @@ export function SendView({
         {[
           ["quote", "1. Quote"],
           ["compliance", "2. Compliance"],
-          ["result", "3. Hasil"],
+          ["result", "3. Result"],
         ].map(([key, label], i) => {
           const idx = ["quote", "compliance", "result"].indexOf(step);
           const state = i < idx ? "done" : i === idx ? "active" : "todo";
@@ -321,7 +323,7 @@ export function SendView({
         <section className="space-y-4 rounded-3xl border border-qila-line bg-white p-6 shadow-[0_4px_14px_rgba(10,20,48,0.06)]">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr]">
             <div>
-              <label className="mb-1 block text-sm font-bold text-qila-ink">Dari</label>
+              <label className="mb-1 block text-sm font-bold text-qila-ink">From</label>
               <select
                 value={fromCcy}
                 onChange={(e) => setFromCcy(e.target.value)}
@@ -329,13 +331,13 @@ export function SendView({
               >
                 {CCYS.map((c) => (
                   <option key={c} value={c}>
-                    {c} — {CCY_NAMES[c]}
+                    {c} ({CCY_NAMES[c]})
                   </option>
                 ))}
               </select>
               {balance && (
                 <p className="mt-1 text-xs text-qila-muted">
-                  Saldo: {formatNumber(balance.amount)} {fromCcy}
+                  Balance: {formatNumber(balance.amount)} {fromCcy}
                 </p>
               )}
             </div>
@@ -345,12 +347,12 @@ export function SendView({
                 setToCcy(fromCcy);
               }}
               className="mt-6 flex h-10 w-10 items-center justify-center self-start rounded-full bg-qila-blue-soft text-qila-blue hover:bg-qila-blue hover:text-white"
-              aria-label="Tukar mata uang"
+              aria-label="Swap currencies"
             >
               ⇄
             </button>
             <div>
-              <label className="mb-1 block text-sm font-bold text-qila-ink">Ke</label>
+              <label className="mb-1 block text-sm font-bold text-qila-ink">To</label>
               <select
                 value={toCcy}
                 onChange={(e) => setToCcy(e.target.value)}
@@ -358,7 +360,7 @@ export function SendView({
               >
                 {CCYS.map((c) => (
                   <option key={c} value={c}>
-                    {c} — {CCY_NAMES[c]}
+                    {c} ({CCY_NAMES[c]})
                   </option>
                 ))}
               </select>
@@ -366,7 +368,7 @@ export function SendView({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-bold text-qila-ink">Nominal ({fromCcy})</label>
+            <label className="mb-1 block text-sm font-bold text-qila-ink">Amount ({fromCcy})</label>
             <input
               type="number"
               min="0"
@@ -379,7 +381,7 @@ export function SendView({
 
           {/* recipient */}
           <div>
-            <label className="mb-1 block text-sm font-bold text-qila-ink">Penerima</label>
+            <label className="mb-1 block text-sm font-bold text-qila-ink">Recipient</label>
             <div className="space-y-2">
               {recipients.map((r) => (
                 <label
@@ -404,7 +406,7 @@ export function SendView({
                       <span className="ml-2 text-xs text-qila-muted">{r.country}</span>
                       {r.linkedUserId && (
                         <span className="ml-2 rounded-full bg-qila-good-soft px-2 py-0.5 text-[10px] font-bold text-qila-good">
-                          user QilaPay
+                          QilaPay user
                         </span>
                       )}
                     </span>
@@ -419,7 +421,7 @@ export function SendView({
                   <input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Nama penerima"
+                    placeholder="Recipient name"
                     className="w-full rounded-lg border border-qila-line px-3 py-2 text-sm outline-none focus:border-qila-blue"
                   />
                   <div className="grid grid-cols-2 gap-2">
@@ -430,26 +432,26 @@ export function SendView({
                     >
                       {["ID", "SG", "US", "GB", "DE", "ES", "AF", "IR"].map((c) => (
                         <option key={c} value={c}>
-                          Negara: {c}
+                          Country: {c}
                         </option>
                       ))}
                     </select>
                     <input
                       value={newAddress}
                       onChange={(e) => setNewAddress(e.target.value)}
-                      placeholder="Wallet Tempo (opsional)"
+                      placeholder="Tempo wallet (optional)"
                       className="rounded-lg border border-qila-line px-3 py-2 text-sm outline-none focus:border-qila-blue"
                     />
                   </div>
                   <p className="text-xs text-qila-muted">
-                    Kosongkan wallet untuk membuat penerima internal (alamat treasury demo).
+                    Leave the wallet empty to create an internal recipient (demo treasury address).
                   </p>
                   <div className="flex gap-2">
                     <QButton size="sm" onClick={addRecipient} disabled={busy}>
-                      Simpan penerima
+                      Save recipient
                     </QButton>
                     <QButton size="sm" variant="ghost" onClick={() => setAddingRecipient(false)}>
-                      Batal
+                      Cancel
                     </QButton>
                   </div>
                 </div>
@@ -458,7 +460,7 @@ export function SendView({
                   onClick={() => setAddingRecipient(true)}
                   className="rounded-xl border border-dashed border-qila-blue/40 px-4 py-2.5 text-sm font-bold text-qila-blue hover:bg-qila-blue-soft/50"
                 >
-                  + Penerima baru
+                  + New recipient
                 </button>
               )}
             </div>
@@ -468,7 +470,7 @@ export function SendView({
           {quote && (
             <div className="rounded-2xl border border-qila-blue/30 bg-qila-blue-soft/40 p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-extrabold text-qila-ink">Kurs terkunci</span>
+                <span className="text-sm font-extrabold text-qila-ink">Locked rate</span>
                 <span
                   className={
                     "rounded-full px-2.5 py-1 text-xs font-bold " +
@@ -479,24 +481,24 @@ export function SendView({
                 </span>
               </div>
               <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                <Row k="Kurs (sudah termasuk spread)" v={`1 ${fromCcy} = ${formatNumber(quote.rate)} ${toCcy}`} />
-                <Row k="Kurs mid-market" v={`1 ${fromCcy} = ${formatNumber(quote.midRate || 0)} ${toCcy}`} />
+                <Row k="Rate (spread included)" v={`1 ${fromCcy} = ${formatNumber(quote.rate)} ${toCcy}`} />
+                <Row k="Mid market rate" v={`1 ${fromCcy} = ${formatNumber(quote.midRate || 0)} ${toCcy}`} />
                 <Row k="Spread" v={`${quote.spreadBps} bps`} />
                 <Row k="Fee" v={`${formatUsdShort(quote.feeUsd)} (${quote.feeUsd})`} />
                 <Row
-                  k="Kamu kirim"
+                  k="You send"
                   v={`${formatMoney(Number(quote.amountIn) / 1e6, fromCcy)}`}
                 />
                 <Row
-                  k="Penerima dapat"
+                  k="Recipient gets"
                   v={`${formatMoney(Number(quote.amountOut) / 1e6, toCcy)}`}
                   strong
                 />
                 <Row
-                  k="Mode eksekusi (estimasi)"
-                  v={quote.executionMode === "dex" ? "DEX Tempo" : quote.executionMode === "direct" ? "Transfer langsung" : "Treasury fallback"}
+                  k="Execution mode (estimate)"
+                  v={quote.executionMode === "dex" ? "Tempo DEX" : quote.executionMode === "direct" ? "Direct transfer" : "Treasury fallback"}
                 />
-                <Row k="Setara USD" v={formatUsdShort(quote.usdEquivalent)} />
+                <Row k="USD equivalent" v={formatUsdShort(quote.usdEquivalent)} />
               </div>
             </div>
           )}
@@ -504,7 +506,7 @@ export function SendView({
           <div className="flex flex-wrap gap-3">
             {!quote ? (
               <QButton size="lg" onClick={createQuote} disabled={busy || !amount || !recipientId}>
-                {busy ? "Memproses…" : "Buat quote & kunci kurs"}
+                {busy ? "Working..." : "Create quote and lock rate"}
               </QButton>
             ) : (
               <>
@@ -513,10 +515,10 @@ export function SendView({
                   onClick={confirmAndSend}
                   disabled={busy || secondsLeft === 0}
                 >
-                  {busy ? "Mengecek compliance…" : "Konfirmasi & kirim"}
+                  {busy ? "Checking compliance..." : "Confirm and send"}
                 </QButton>
                 <QButton size="lg" variant="ghost" onClick={() => setQuote(null)}>
-                  Ubah quote
+                  Edit quote
                 </QButton>
               </>
             )}
@@ -547,7 +549,7 @@ export function SendView({
           execResult={execResult}
           decision={decision}
           onNewTransfer={resetWizard}
-          onGoTransfers={() => (window.location.hash = "#transfers")}
+          onGoTransfers={onGoTransfers ?? (() => (window.location.href = "/transactions"))}
         />
       )}
     </div>
@@ -594,13 +596,13 @@ function ComplianceStep({
         <div className="flex items-center gap-2">
           <Pill className="bg-qila-warn text-white">STEP_UP</Pill>
           <span className="text-sm font-bold text-qila-warn">
-            Verifikasi tambahan diperlukan untuk transfer ini
+            This transfer needs extra verification
           </span>
         </div>
 
-        {/* "Kenapa saya diminta verifikasi?" panel (spec 5.3) */}
+        {/* "Why am I asked to verify?" panel (spec 5.3) */}
         <div className="rounded-2xl bg-white p-5">
-          <h3 className="text-lg font-extrabold text-qila-ink">Kenapa saya diminta verifikasi?</h3>
+          <h3 className="text-lg font-extrabold text-qila-ink">Why am I asked to verify?</h3>
           <ul className="mt-3 space-y-2">
             {decision.labels.map((l) => (
               <li key={l.code} className="rounded-xl border border-qila-line p-3 text-sm">
@@ -613,17 +615,17 @@ function ComplianceStep({
             ))}
           </ul>
           <p className="mt-3 text-xs text-qila-muted">
-            Target tier minimum: <strong>Tier {decision.targetTier}</strong> — setelah verifikasi
-            lolos, transfer lanjut otomatis.
+            Minimum target tier: <strong>Tier {decision.targetTier}</strong>. Once verification
+            passes, the transfer continues automatically.
           </p>
         </div>
 
         {/* method choice */}
         {!verification && (
           <div className="rounded-2xl bg-white p-5">
-            <h3 className="font-extrabold text-qila-ink">Pilih metode verifikasi</h3>
+            <h3 className="font-extrabold text-qila-ink">Pick a verification method</h3>
             <p className="mt-1 text-sm text-qila-muted">
-              Semua metode di bawah memenuhi syarat Tier {decision.targetTier}.
+              All methods below qualify for Tier {decision.targetTier}.
             </p>
             <div className="mt-3 space-y-2">
               {methods.map((m) => (
@@ -648,7 +650,7 @@ function ComplianceStep({
                 ))}
             </div>
             <QButton className="mt-4" onClick={onSubmitVerification} disabled={busy || !selectedMethod}>
-              {busy ? "Mengirim…" : "Kirim verifikasi"}
+              {busy ? "Sending..." : "Submit verification"}
             </QButton>
           </div>
         )}
@@ -657,7 +659,7 @@ function ComplianceStep({
         {verification && (
           <div className="rounded-2xl bg-white p-5">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-qila-ink">Status provider (MockKycProvider)</h3>
+              <h3 className="font-extrabold text-qila-ink">Provider status (MockKycProvider)</h3>
               <Pill
                 className={
                   verification.status === "approved"
@@ -671,7 +673,7 @@ function ComplianceStep({
               </Pill>
             </div>
             <p className="mt-1 text-sm text-qila-muted">
-              Metode: <strong>{verification.method}</strong> · provider ref{" "}
+              Method: <strong>{verification.method}</strong> provider ref{" "}
               <code>{verification.providerRef}</code>
             </p>
             {verification.status === "pending" && (
@@ -689,13 +691,13 @@ function ComplianceStep({
             )}
             {verification.status === "approved" && (
               <p className="mt-3 rounded-xl bg-qila-good-soft p-3 text-sm font-bold text-qila-good">
-                Verifikasi lolos — transfer otomatis dilanjutkan…
+                Verification passed. The transfer continues automatically...
               </p>
             )}
             {(verification.status === "rejected" || verification.status === "needs_more_info") && (
               <p className="mt-3 rounded-xl bg-qila-bad-soft p-3 text-sm font-bold text-qila-bad">
-                Verifikasi {verification.status === "rejected" ? "ditolak" : "butuh info tambahan"} —
-                coba metode lain.
+                Verification {verification.status === "rejected" ? "rejected" : "needs more info"}.
+                Try another method.
               </p>
             )}
           </div>
@@ -710,11 +712,11 @@ function ComplianceStep({
         <div className="flex items-center gap-2">
           <Pill className="bg-qila-warn text-white">HOLD_REVIEW</Pill>
           <span className="text-sm font-bold text-qila-warn">
-            Transfer masuk antrean review admin
+            Transfer queued for admin review
           </span>
         </div>
         <div className="rounded-2xl bg-white p-5">
-          <h3 className="text-lg font-extrabold text-qila-ink">Kenapa transfer saya di-hold?</h3>
+          <h3 className="text-lg font-extrabold text-qila-ink">Why is my transfer on hold?</h3>
           <ul className="mt-3 space-y-2">
             {decision.labels.map((l) => (
               <li key={l.code} className="rounded-xl border border-qila-line p-3 text-sm">
@@ -726,8 +728,8 @@ function ComplianceStep({
             ))}
           </ul>
           <p className="mt-3 text-sm text-qila-muted">
-            Tim compliance akan mereview. Login sebagai <strong>admin</strong> (persona admin) untuk
-            menyetujui atau menolak transfer ini di konsol Admin.
+            The compliance team will review it. Sign in as <strong>admin</strong> (admin persona) to
+            approve or reject this transfer in the Admin console.
           </p>
         </div>
       </section>
@@ -739,7 +741,7 @@ function ComplianceStep({
     <section className="space-y-4 rounded-3xl border border-qila-bad/30 bg-qila-bad-soft/60 p-6">
       <div className="flex items-center gap-2">
         <Pill className="bg-qila-bad text-white">BLOCK</Pill>
-        <span className="text-sm font-bold text-qila-bad">Transfer diblokir</span>
+        <span className="text-sm font-bold text-qila-bad">Transfer blocked</span>
       </div>
       <div className="rounded-2xl bg-white p-5">
         <ul className="space-y-2">
@@ -774,13 +776,13 @@ function ResultStep({
   const settled = status === "settled";
   const explorerBase = "https://explore.testnet.tempo.xyz";
   const hashes = [
-    execResult?.txHash && { label: "Tx transfer", hash: execResult.txHash },
-    execResult?.submitTxHash && { label: "Tx debit pengirim", hash: execResult.submitTxHash },
-    execResult?.swapTxHash && { label: "Tx swap", hash: execResult.swapTxHash },
-    execResult?.outTxHash && { label: "Tx kredit penerima", hash: execResult.outTxHash },
-    transfer?.txHash && !execResult && { label: "Tx transfer", hash: transfer.txHash },
-    transfer?.submitTxHash && !execResult && { label: "Tx debit", hash: transfer.submitTxHash },
-    transfer?.outTxHash && !execResult && { label: "Tx kredit", hash: transfer.outTxHash },
+    execResult?.txHash && { label: "Transfer tx", hash: execResult.txHash },
+    execResult?.submitTxHash && { label: "Sender debit tx", hash: execResult.submitTxHash },
+    execResult?.swapTxHash && { label: "Swap tx", hash: execResult.swapTxHash },
+    execResult?.outTxHash && { label: "Recipient credit tx", hash: execResult.outTxHash },
+    transfer?.txHash && !execResult && { label: "Transfer tx", hash: transfer.txHash },
+    transfer?.submitTxHash && !execResult && { label: "Debit tx", hash: transfer.submitTxHash },
+    transfer?.outTxHash && !execResult && { label: "Credit tx", hash: transfer.outTxHash },
   ]
     .filter((h): h is { label: string; hash: string } => Boolean(h))
     .filter((h, i, arr) => arr.findIndex((x) => x.hash === h.hash) === i);
@@ -800,11 +802,11 @@ function ResultStep({
           <h2 className="text-xl font-extrabold text-qila-ink">
             {settled
               ? "Transfer settled!"
-              : TRANSFER_STATUS_LABELS[status] || "Transfer dalam proses"}
+              : TRANSFER_STATUS_LABELS[status] || "Transfer in progress"}
           </h2>
           {settled && execResult?.settlementSeconds != null && (
             <p className="text-sm font-bold text-qila-good">
-              Settled in {execResult.settlementSeconds.toFixed(2)} detik
+              Settled in {execResult.settlementSeconds.toFixed(2)}s
             </p>
           )}
         </div>
@@ -816,29 +818,29 @@ function ResultStep({
       {transfer?.quote && (
         <div className="grid gap-2 rounded-2xl bg-background p-4 text-sm sm:grid-cols-2">
           <Row
-            k="Jumlah"
+            k="Amount"
             v={`${formatMoney(Number(transfer.quote.amountIn) / 1e6, transfer.quote.fromCcy)} → ${formatMoney(Number(transfer.quote.amountOut) / 1e6, transfer.quote.toCcy)}`}
           />
           <Row
-            k="Mode eksekusi"
+            k="Execution mode"
             v={
               (execResult?.executionMode || transfer.executionMode) === "dex"
-                ? "DEX Tempo"
+                ? "Tempo DEX"
                 : (execResult?.executionMode || transfer.executionMode) === "treasury"
                   ? "Treasury fallback"
                   : (execResult?.executionMode || transfer.executionMode) === "direct"
-                    ? "Transfer langsung"
-                    : "—"
+                    ? "Direct transfer"
+                    : "-"
             }
           />
-          <Row k="Memo on-chain" v={transfer.memo || "—"} />
-          <Row k="Transfer ID" v={transfer.id.slice(0, 12) + "…"} />
+          <Row k="Onchain memo" v={transfer.memo || "-"} />
+          <Row k="Transfer ID" v={transfer.id.slice(0, 12) + "..."} />
         </div>
       )}
 
       {hashes.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-bold text-qila-ink">Transaksi on-chain:</p>
+          <p className="text-sm font-bold text-qila-ink">Onchain transactions:</p>
           {hashes.map((h) => (
             <a
               key={h.hash}
@@ -856,14 +858,14 @@ function ResultStep({
 
       {status === "pending_review" && (
         <p className="rounded-2xl bg-qila-warn-soft p-4 text-sm font-semibold text-qila-warn">
-          Transfer menunggu persetujuan admin. Cek konsol Admin untuk approve/reject.
+          Transfer is waiting for admin approval. Check the Admin console to approve or reject.
         </p>
       )}
 
       <div className="flex gap-3">
-        <QButton onClick={onNewTransfer}>Kirim lagi</QButton>
+        <QButton onClick={onNewTransfer}>Send again</QButton>
         <QButton variant="ghost" onClick={onGoTransfers}>
-          Lihat riwayat transfer
+          View transfer history
         </QButton>
       </div>
     </section>

@@ -9,6 +9,12 @@ out/
 .env*.local
 .env
 
+# Audit H4: live databases hold password hashes + encrypted wallet keys —
+# never track them (db/custom.db was committed and must be purged).
+db/*.db
+*.db
+*.db-journal
+
 # Legacy static prototype (kept for reference, not part of the Next build)
 legacy-preview/
 

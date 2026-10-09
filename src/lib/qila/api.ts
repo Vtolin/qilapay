@@ -11,9 +11,10 @@ export function fail(message: string, status = 400, extra?: Record<string, unkno
 
 export function handleError(e: unknown) {
   if (e instanceof HttpError) return fail(e.message, e.status);
+  // Audit M6: never reflect internal messages (Prisma/RPC/env details) to clients.
   const message = e instanceof Error ? e.message : String(e);
   console.error("[api]", message);
-  return fail(message, 500);
+  return fail("Terjadi kesalahan internal", 500);
 }
 
 export function jsonSafe<T>(value: T): T {

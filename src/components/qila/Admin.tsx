@@ -106,7 +106,7 @@ export function AdminView() {
   }
 
   if (!data) {
-    return <div className="qila-container py-10 text-qila-muted">Memuat konsol admin…</div>;
+    return <div className="qila-container py-10 text-qila-muted">Loading admin console...</div>;
   }
 
   const totalPending =
@@ -116,26 +116,26 @@ export function AdminView() {
     <div className="qila-container max-w-6xl space-y-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Eyebrow tone="night">
+          <Eyebrow tone="dark">
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
             Admin console
           </Eyebrow>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-qila-ink">
-            Compliance & operasional
+            Compliance and operations
           </h1>
         </div>
         <Pill className={totalPending > 0 ? "bg-qila-warn text-white" : "bg-qila-good-soft text-qila-good"}>
-          {totalPending > 0 ? `${totalPending} item perlu review` : "Antrean bersih"}
+          {totalPending > 0 ? `${totalPending} items need review` : "Queue is clear"}
         </Pill>
       </div>
 
       <div className="flex gap-1 overflow-x-auto rounded-full bg-qila-blue-soft/70 p-1 sm:w-fit">
         {(
           [
-            ["queue", `Antrean (${totalPending})`],
-            ["monitor", "Monitor transfer"],
+            ["queue", `Queue (${totalPending})`],
+            ["monitor", "Transfer monitor"],
             ["risk", "Risk decisions"],
-            ["config", "Limit & risiko"],
+            ["config", "Limits and risk"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -156,10 +156,10 @@ export function AdminView() {
         <div className="space-y-6">
           {/* pending review transfers */}
           <section className="rounded-3xl border border-qila-line bg-white p-6">
-            <h2 className="text-lg font-extrabold text-qila-ink">Transfer menunggu review</h2>
+            <h2 className="text-lg font-extrabold text-qila-ink">Transfers waiting for review</h2>
             {data.pendingReviewTransfers.length === 0 ? (
               <p className="mt-3 rounded-2xl bg-background p-6 text-center text-sm text-qila-muted">
-                Tidak ada transfer di antrean.
+                No transfers in the queue.
               </p>
             ) : (
               <ul className="mt-3 space-y-3">
@@ -172,14 +172,14 @@ export function AdminView() {
                           {formatMoney(Number(t.quote.amountOut) / 1e6, t.quote.toCcy)}
                         </p>
                         <p className="text-xs text-qila-muted">
-                          {t.user.fullName} ke {t.recipient.name} ({t.recipient.country}) ·{" "}
-                          {formatDateTime(t.createdAt)} · setara{" "}
+                          {t.user.fullName} to {t.recipient.name} ({t.recipient.country}),{" "}
+                          {formatDateTime(t.createdAt)}, about{" "}
                           {t.quote.usdEquivalent.toFixed(2)} USD
                         </p>
                       </div>
                       <div className="flex gap-2">
                         <QButton size="sm" onClick={() => act("transfer", t.id, "approve")} disabled={busy}>
-                          Approve & eksekusi
+                          Approve and execute
                         </QButton>
                         <QButton size="sm" variant="danger" onClick={() => act("transfer", t.id, "reject")} disabled={busy}>
                           Reject
@@ -199,10 +199,10 @@ export function AdminView() {
 
           {/* pending verifications */}
           <section className="rounded-3xl border border-qila-line bg-white p-6">
-            <h2 className="text-lg font-extrabold text-qila-ink">Verifikasi KYC menunggu</h2>
+            <h2 className="text-lg font-extrabold text-qila-ink">KYC verifications waiting</h2>
             {data.pendingVerifications.length === 0 ? (
               <p className="mt-3 rounded-2xl bg-background p-6 text-center text-sm text-qila-muted">
-                Tidak ada verifikasi di antrean.
+                No verifications in the queue.
               </p>
             ) : (
               <ul className="mt-3 space-y-2">
@@ -213,10 +213,10 @@ export function AdminView() {
                   >
                     <div>
                       <p className="text-sm font-bold text-qila-ink">
-                        {v.user.fullName} ({v.user.email}) — {v.method} → Tier {v.targetTier}
+                        {v.user.fullName} ({v.user.email}), {v.method} to Tier {v.targetTier}
                       </p>
                       <p className="text-xs text-qila-muted">
-                        Tier saat ini {v.user.currentTier} · {formatDateTime(v.createdAt)}
+                        Current tier {v.user.currentTier} {formatDateTime(v.createdAt)}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -241,13 +241,13 @@ export function AdminView() {
       {/* MONITOR */}
       {tab === "monitor" && (
         <section className="overflow-x-auto rounded-3xl border border-qila-line bg-white p-6">
-          <h2 className="text-lg font-extrabold text-qila-ink">Transfer live (30 terakhir)</h2>
+          <h2 className="text-lg font-extrabold text-qila-ink">Live transfers (latest 30)</h2>
           <table className="mt-3 w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-qila-line text-left text-xs uppercase tracking-wider text-qila-muted">
-                <th className="py-2">Waktu</th>
-                <th>Pengirim → Penerima</th>
-                <th>Jumlah</th>
+                <th className="py-2">Time</th>
+                <th>Sender to recipient</th>
+                <th>Amount</th>
                 <th>Mode</th>
                 <th>Status</th>
                 <th>Tx</th>
@@ -265,7 +265,7 @@ export function AdminView() {
                     {formatMoney(Number(t.quote.amountOut) / 1e6, t.quote.toCcy)}
                   </td>
                   <td className="text-xs">
-                    {t.executionMode === "dex" ? "DEX" : t.executionMode === "treasury" ? "Treasury" : "—"}
+                    {t.executionMode === "dex" ? "DEX" : t.executionMode === "treasury" ? "Treasury" : "-"}
                   </td>
                   <td>
                     <Pill className={TRANSFER_STATUS_TONES[t.status] || "bg-qila-blue-soft"}>
@@ -283,7 +283,7 @@ export function AdminView() {
                         {shortenHash(t.txHash)} ↗
                       </a>
                     ) : (
-                      "—"
+                      "-"
                     )}
                   </td>
                 </tr>
@@ -296,11 +296,11 @@ export function AdminView() {
       {/* RISK */}
       {tab === "risk" && (
         <section className="overflow-x-auto rounded-3xl border border-qila-line bg-white p-6">
-          <h2 className="text-lg font-extrabold text-qila-ink">Risk decisions (30 terakhir)</h2>
+          <h2 className="text-lg font-extrabold text-qila-ink">Risk decisions (latest 30)</h2>
           <table className="mt-3 w-full min-w-[680px] text-sm">
             <thead>
               <tr className="border-b border-qila-line text-left text-xs uppercase tracking-wider text-qila-muted">
-                <th className="py-2">Waktu</th>
+                <th className="py-2">Time</th>
                 <th>User</th>
                 <th>Outcome</th>
                 <th>Reason codes</th>
@@ -333,9 +333,9 @@ export function AdminView() {
                     {(() => {
                       try {
                         const s = JSON.parse(d.inputSnapshot) as Record<string, unknown>;
-                        return `amount $${Number(s.amountUsd || 0).toFixed(2)} · usage $${Number(s.rollingUsage30dUsd || 0).toFixed(0)} · velocity ${s.velocityLast10m} · tier ${s.userTier}→${s.targetTier}`;
+                        return `amount $${Number(s.amountUsd || 0).toFixed(2)}, usage $${Number(s.rollingUsage30dUsd || 0).toFixed(0)}, velocity ${s.velocityLast10m}, tier ${s.userTier} to ${s.targetTier}`;
                       } catch {
-                        return "—";
+                        return "-";
                       }
                     })()}
                   </td>
@@ -350,7 +350,7 @@ export function AdminView() {
       {tab === "config" && (
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-3xl border border-qila-line bg-white p-6">
-            <h2 className="text-lg font-extrabold text-qila-ink">Limit tier</h2>
+            <h2 className="text-lg font-extrabold text-qila-ink">Tier limits</h2>
             <div className="mt-3 space-y-3">
               {data.tiers.map((t) => (
                 <TierEditor key={t.tier} tier={t} onSave={saveTier} busy={busy} />
@@ -360,7 +360,7 @@ export function AdminView() {
 
           <div className="space-y-6">
             <section className="rounded-3xl border border-qila-line bg-white p-6">
-              <h2 className="text-lg font-extrabold text-qila-ink">Spread & fee FX</h2>
+              <h2 className="text-lg font-extrabold text-qila-ink">FX spread and fee</h2>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <ConfigInput
                   label="Spread (bps)"
@@ -376,7 +376,7 @@ export function AdminView() {
                 />
               </div>
               <p className="mt-2 text-xs text-qila-muted">
-                Kurs Frankfurter terakhir:{" "}
+                Latest Frankfurter rates:{" "}
                 {Object.entries(data.rates)
                   .map(([k, v]) => `${k} ${v}`)
                   .join(" · ")}
@@ -384,23 +384,23 @@ export function AdminView() {
             </section>
 
             <section className="rounded-3xl border border-qila-line bg-white p-6">
-              <h2 className="text-lg font-extrabold text-qila-ink">Ambang risiko</h2>
+              <h2 className="text-lg font-extrabold text-qila-ink">Risk thresholds</h2>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <ConfigInput
-                  label="Velocity max / 10 menit"
+                  label="Velocity max per 10 min"
                   value={data.config.velocity_max_transfers}
                   onSave={(v) => saveConfig({ velocity_max_transfers: v })}
                   busy={busy}
                 />
                 <ConfigInput
-                  label="Penerima baru ≥ USD"
+                  label="New recipient at or above USD"
                   value={data.config.new_recipient_large_usd}
                   onSave={(v) => saveConfig({ new_recipient_large_usd: v })}
                   busy={busy}
                 />
               </div>
               <ConfigInput
-                label="Koridor risiko (JSON array negara)"
+                label="Risk corridors (JSON country array)"
                 value={data.config.risk_corridors}
                 onSave={(v) => saveConfig({ risk_corridors: v })}
                 busy={busy}
@@ -441,7 +441,7 @@ function TierEditor({
   return (
     <div className="rounded-2xl border border-qila-line bg-background p-4">
       <p className="text-sm font-bold text-qila-ink">
-        Tier {tier.tier} — {tier.name}
+        Tier {tier.tier}, {tier.name}
       </p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <input
@@ -463,7 +463,7 @@ function TierEditor({
         onClick={() => onSave(tier.tier, Number(perTx), Number(rolling))}
         disabled={busy}
       >
-        Simpan
+        Save
       </QButton>
     </div>
   );

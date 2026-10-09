@@ -126,6 +126,27 @@
    ========================================================================== */
 
 @theme {
+  /* Brand canonical tokens (ported from qpfrontendold "Trustful Blue").
+     New code uses these. Legacy qila-* aliases below map to the same values
+     so existing views keep working during migration. */
+  --color-background: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-ink: #0e152b;
+  --color-muted: #5b6478;
+  --color-line: #e4e8f0;
+
+  --color-primary: #2447ff;
+  --color-primary-dark: #1a35cc;
+  --color-primary-soft: #e7ecff;
+  --color-primary-ink: #0a1430;
+
+  --color-accent: #bcd9ff;
+  --color-accent-deep: #122f68;
+  --color-accent-soft: #e3efff;
+
+  --color-night: #0a1430;
+  --color-night-soft: #131f45;
+
   --color-qila-ink: #0e152b;
   --color-qila-muted: #5b6478;
   --color-qila-line: #e4e8f0;

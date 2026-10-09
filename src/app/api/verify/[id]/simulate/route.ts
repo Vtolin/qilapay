@@ -14,14 +14,14 @@ export async function POST(
 ) {
   try {
     const user = await requireUser();
-    if (!isDemoMode()) return fail("Simulasi hanya tersedia di DEMO_MODE", 403);
+    if (!isDemoMode()) return fail("Simulation is only available in DEMO_MODE", 403);
     const { id } = await params;
     const body = (await req.json()) as { result: "approve" | "reject" | "needs_more_info" };
 
     const verification = await db.kycVerification.findUnique({ where: { id } });
-    if (!verification) return fail("Verifikasi tidak ditemukan", 404);
+    if (!verification) return fail("Verification not found", 404);
     if (verification.userId !== user.id && user.role?.role !== "admin") {
-      return fail("Bukan verifikasi kamu", 403);
+      return fail("Not your verification", 403);
     }
 
     const statusMap = {
@@ -30,7 +30,7 @@ export async function POST(
       needs_more_info: "needs_more_info",
     } as const;
     const newStatus = statusMap[body.result];
-    if (!newStatus) return fail("Result tidak dikenal");
+    if (!newStatus) return fail("Unknown result");
 
     const updated = await db.kycVerification.update({
       where: { id },

@@ -221,12 +221,14 @@ export async function tryDexQuote(
 ): Promise<DexQuoteResult> {
   try {
     const client = getTreasuryClient();
-    const quote = await client.dex.getSellQuote({
+    // viem returns the sell quote as a bare bigint in this version.
+    const quote = (await client.dex.getSellQuote({
       tokenIn: getAddress(tokenIn),
       tokenOut: getAddress(tokenOut),
       amountIn,
-    });
-    if (quote && quote.amountOut > 0n) return { available: true, amountOut: quote.amountOut };
+    })) as unknown as bigint | { amountOut: bigint };
+    const quoteOut = typeof quote === "bigint" ? quote : quote.amountOut;
+    if (quoteOut > BigInt(0)) return { available: true, amountOut: quoteOut };
     return { available: false, reason: "ZERO_QUOTE" };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

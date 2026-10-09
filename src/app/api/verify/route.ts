@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireUser } from "@/lib/qila/session";
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as { method: string; targetTier: number; transferId?: string };
     const method = body.method;
     const validMethods = Object.keys(METHOD_LABELS);
-    if (!validMethods.includes(method)) return fail("Metode verifikasi tidak dikenal");
+    if (!validMethods.includes(method)) return fail("Unknown verification method");
     const result = await kycProvider.submit({
       userId: user.id,
       method: method as never,

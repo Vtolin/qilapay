@@ -4,9 +4,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true,
+    // Audit L2: surface type errors at build instead of shipping them.
+    ignoreBuildErrors: false,
   },
-  reactStrictMode: false,
+  reactStrictMode: true,
 };
 
 export default nextConfig;

@@ -49,13 +49,13 @@ export function RecipientsView() {
       <div>
         <Eyebrow tone="blue">
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          Penerima
+          Recipients
         </Eyebrow>
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-qila-ink">
-          Daftar penerima
+          Saved recipients
         </h1>
         <p className="mt-2 text-qila-muted">
-          Penerima bisa berupa user QilaPay lain (cari lewat email) atau wallet eksternal Tempo.
+          A recipient can be another QilaPay user (find them by email) or an external Tempo wallet.
         </p>
       </div>
 
@@ -70,7 +70,7 @@ export function RecipientsView() {
                 (mode === m ? "bg-white text-qila-ink shadow-sm" : "text-qila-muted")
               }
             >
-              {m === "linked" ? "User QilaPay" : "Wallet eksternal"}
+              {m === "linked" ? "QilaPay user" : "External wallet"}
             </button>
           ))}
         </div>
@@ -78,7 +78,7 @@ export function RecipientsView() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nama penerima"
+            placeholder="Recipient name"
             className="rounded-xl border border-qila-line px-3 py-2.5 text-sm outline-none focus:border-qila-blue"
           />
           <select
@@ -88,7 +88,7 @@ export function RecipientsView() {
           >
             {["ID", "SG", "US", "GB", "DE", "ES", "AF", "IR", "MM", "SY"].map((c) => (
               <option key={c} value={c}>
-                Negara: {c}
+                Country: {c}
               </option>
             ))}
           </select>
@@ -97,14 +97,14 @@ export function RecipientsView() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email user QilaPay (mis. budi@qilapay.demo)"
+              placeholder="QilaPay user email (for example, budi@qilapay.demo)"
               className="rounded-xl border border-qila-line px-3 py-2.5 text-sm outline-none focus:border-qila-blue sm:col-span-2"
             />
           ) : (
             <input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="0x… alamat wallet Tempo"
+              placeholder="0x... Tempo wallet address"
               className="rounded-xl border border-qila-line px-3 py-2.5 font-mono text-sm outline-none focus:border-qila-blue sm:col-span-2"
             />
           )}
@@ -115,7 +115,7 @@ export function RecipientsView() {
           </p>
         )}
         <QButton className="mt-4" onClick={add} disabled={busy || !name}>
-          {busy ? "Menyimpan…" : "Tambah penerima"}
+          {busy ? "Saving..." : "Add recipient"}
         </QButton>
       </section>
 
@@ -126,19 +126,19 @@ export function RecipientsView() {
               <div>
                 <p className="font-bold text-qila-ink">{r.name}</p>
                 <p className="text-xs text-qila-muted">
-                  {r.country} · {shortenAddress(r.walletAddress || "")} · ditambahkan{" "}
+                  {r.country} {shortenAddress(r.walletAddress || "")} Added{" "}
                   {formatDateTime(r.createdAt)}
                 </p>
               </div>
               {r.linkedUserId && (
                 <span className="rounded-full bg-qila-good-soft px-2.5 py-1 text-xs font-bold text-qila-good">
-                  user QilaPay
+                  QilaPay user
                 </span>
               )}
             </li>
           ))}
           {recipients.length === 0 && (
-            <li className="p-10 text-center text-sm text-qila-muted">Belum ada penerima.</li>
+            <li className="p-10 text-center text-sm text-qila-muted">No recipients yet.</li>
           )}
         </ul>
       </section>

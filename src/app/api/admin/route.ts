@@ -13,22 +13,75 @@ export async function GET() {
         db.kycVerification.findMany({
           where: { status: "pending" },
           orderBy: { createdAt: "asc" },
-          include: { user: true },
+          // Audit: explicit field selection — never leak passwordHash to clients.
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                fullName: true,
+                country: true,
+                currentTier: true,
+                personaKey: true,
+                createdAt: true,
+              },
+            },
+          },
         }),
         db.transfer.findMany({
           where: { status: "pending_review" },
           orderBy: { createdAt: "asc" },
-          include: { user: true, recipient: true, quote: true },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                fullName: true,
+                country: true,
+                currentTier: true,
+                personaKey: true,
+                createdAt: true,
+              },
+            },
+            recipient: true,
+            quote: true,
+          },
         }),
         db.transfer.findMany({
           orderBy: { createdAt: "desc" },
           take: 30,
-          include: { user: true, recipient: true, quote: true },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                fullName: true,
+                country: true,
+                currentTier: true,
+                personaKey: true,
+                createdAt: true,
+              },
+            },
+            recipient: true,
+            quote: true,
+          },
         }),
         db.riskDecision.findMany({
           orderBy: { createdAt: "desc" },
           take: 30,
-          include: { user: true },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                fullName: true,
+                country: true,
+                currentTier: true,
+                personaKey: true,
+                createdAt: true,
+              },
+            },
+          },
         }),
         db.kycTierConfig.findMany({ orderBy: { tier: "asc" } }),
         db.screeningEntry.findMany(),
