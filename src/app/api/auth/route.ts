@@ -2,6 +2,7 @@
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { setSessionCookie, clearSessionCookie } from "@/lib/qila/session";
+import { isDemoMode } from "@/lib/qila/kyc-provider";
 import { createWalletCredentials, faucetFund } from "@/lib/qila/tempo";
 import { encryptSecret } from "@/lib/qila/crypto";
 import { hashPassword, seedPersonas, seedBase } from "@/lib/qila/seed";
@@ -27,8 +28,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "persona") {
-      // Demo persona login (DEMO_MODE only)
-      if ((process.env.DEMO_MODE || "").toLowerCase() !== "true") {
+      // Demo persona login (DEMO_MODE only, never in production — see isDemoMode)
+      if (!isDemoMode()) {
         return fail("Persona login is only available in demo mode", 403);
       }
       await lazySeed();
@@ -57,7 +58,8 @@ export async function POST(req: NextRequest) {
       await lazySeed();
       if (password.length < 8) return fail("Password must be at least 8 characters");
       const existing = await db.user.findUnique({ where: { email } });
-      if (existing) return fail("Email is already registered");
+      // Fix F11: neutral message — do not confirm whether an email is registered.
+      if (existing) return fail("Unable to create an account with this email");
       const user = await db.user.create({
         data: {
           email,

@@ -64,7 +64,7 @@ model KycVerification {
 model Wallet {
   id           String   @id @default(cuid())
   userId       String   @unique
-  address      String
+  address      String   @unique // fix F9: duplicate wallet addresses were accepted
   encryptedKey String   // AES-256-GCM, never leaves server
   createdAt    DateTime @default(now())
 

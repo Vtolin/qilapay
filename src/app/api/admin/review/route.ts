@@ -2,6 +2,7 @@
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireAdmin } from "@/lib/qila/session";
+import { assertTransferTransition } from "@/lib/qila/validation";
 import { addTransferEvent, runExecution } from "@/lib/qila/transfer-engine";
 import { explorerTx } from "@/lib/qila/tempo";
 
@@ -65,13 +66,18 @@ export async function POST(req: NextRequest) {
       }
       if (body.action === "approve") {
         const result = await runExecution(body.id);
+        // Fix F14: log approval only on success; refusals get their own trail
+        // (previously every attempt logged admin.transfer.approve, even refused ones).
         await db.auditLog.create({
           data: {
             actor: admin.email,
-            action: "admin.transfer.approve",
+            action: result.status === "settled" ? "admin.transfer.approve" : "admin.transfer.approve_failed",
             entity: "transfer",
             entityId: body.id,
-            meta: JSON.stringify({ txHash: result.txHash || result.outTxHash || null }),
+            meta: JSON.stringify({
+              txHash: result.txHash || result.outTxHash || null,
+              ...(result.error ? { error: result.error } : {}),
+            }),
           },
         });
         return ok(
@@ -82,6 +88,8 @@ export async function POST(req: NextRequest) {
         );
       }
       // reject
+      // Fix F5: allowlisted state transition (was implicit).
+      assertTransferTransition("pending_review", "blocked");
       await db.transfer.update({ where: { id: body.id }, data: { status: "blocked" } });
       await addTransferEvent(body.id, "blocked", {
         by: admin.email,

@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
 import { decryptSecret } from "./crypto";
 import {
+  assertTransferTransition,
   buildPartialFailureDetail,
   isQuoteAmountCovered,
   isValidWalletAddress,
 } from "./validation";
+import { reclaimStuckSubmitted } from "./reclaim";
 import {
   encodeMemo,
   getTreasuryAccount,
@@ -211,6 +213,14 @@ export async function addTransferEvent(
 
 /** Orchestrate: submitted -> on-chain -> settled | failed, with event log. */
 export async function runExecution(transferId: string) {
+  // Fix F3: opportunistically sweep crash-orphaned `submitted` rows first.
+  // Bounded + never re-executes (marks failed for operator triage); a sweep
+  // failure must never block the live execution.
+  try {
+    await reclaimStuckSubmitted(db);
+  } catch (e) {
+    console.error("[reclaim] sweep failed", e);
+  }
   // Audit H2: atomic state claim — concurrent/retried executions of the same
   // transfer collapse to exactly one on-chain run.
   const claimed = await db.transfer.updateMany({
@@ -241,6 +251,8 @@ export async function runExecution(transferId: string) {
     if (source) {
       const bal = await getTokenBalance(source.tokenAddress, preflight.user.wallet.address);
       if (bal < BigInt(preflight.quote.amountIn)) {
+        // Fix F5: allowlisted state transition (was implicit).
+        assertTransferTransition("submitted", "failed");
         await db.transfer.update({ where: { id: transferId }, data: { status: "failed" } });
         await addTransferEvent(transferId, "failed", {
           error: "Insufficient balance at execution",
@@ -257,6 +269,8 @@ export async function runExecution(transferId: string) {
 
   const result = await executeTransferOnChain(transferId);
   if (result.status === "settled") {
+    // Fix F5: allowlisted state transition (was implicit).
+    assertTransferTransition("submitted", "settled");
     await db.transfer.update({
       where: { id: transferId },
       data: {
@@ -277,6 +291,8 @@ export async function runExecution(transferId: string) {
   } else {
     // Audit H3: persist any landed leg + partial/refund flags so a failed
     // debit-then-credit leaves an operator-actionable trail, not a bare "failed".
+    // Fix F5: allowlisted state transition (was implicit).
+    assertTransferTransition("submitted", "failed");
     await db.transfer.update({
       where: { id: transferId },
       data: {

@@ -4,6 +4,7 @@ import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireUser } from "@/lib/qila/session";
 import { getFxSnapshot, toUsd } from "@/lib/qila/fx";
 import { evaluateTransfer, REASON_LABELS, REASON_METHOD_HINT, METHOD_LABELS } from "@/lib/qila/risk";
+import { assertTransferTransition } from "@/lib/qila/validation";
 import { executeTransferOnChain, addTransferEvent, runExecution } from "@/lib/qila/transfer-engine";
 
 /** POST: create transfer + run adaptive-KYC decision engine (spec 6 step 2). */
@@ -55,6 +56,8 @@ export async function POST(req: NextRequest) {
     await db.transfer.update({ where: { id: transfer.id }, data: { memo: memoOnChain } });
     transfer.memo = memoOnChain;
     await addTransferEvent(transfer.id, "quoted", { quoteId: quote.id });
+    // Fix F5: allowlisted state transition (was implicit).
+    assertTransferTransition("quoted", "compliance_check");
     await db.transfer.update({ where: { id: transfer.id }, data: { status: "compliance_check" } });
     await addTransferEvent(transfer.id, "compliance_check", {});
 
@@ -103,6 +106,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Fix F5: allowlisted state transition (was implicit).
+    assertTransferTransition("compliance_check", status);
     await db.transfer.update({ where: { id: transfer.id }, data: { status } });
 
     // ALLOW: execute immediately

@@ -32,6 +32,8 @@ export interface KycProvider {
 }
 
 export function isDemoMode(): boolean {
+  // Fix F7: never demo mode in production, even if DEMO_MODE=true leaks in.
+  if ((process.env.NODE_ENV || "development") === "production") return false;
   return (process.env.DEMO_MODE || "").toLowerCase() === "true";
 }
 

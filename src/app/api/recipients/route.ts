@@ -2,6 +2,7 @@
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireUser } from "@/lib/qila/session";
+import { checkRateLimit } from "@/lib/qila/rate-limit";
 import { isValidWalletAddress, requireEnvSecret } from "@/lib/qila/validation";
 import { getAddress } from "viem";
 
@@ -23,6 +24,13 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
+    // Unbounded recipient rows otherwise (one row per POST, no throttle).
+    if (
+      !checkRateLimit(`recipients:${user.id}`, { limit: 60, windowMs: 60 * 60 * 1000 }).allowed ||
+      !checkRateLimit("recipients:global", { limit: 300, windowMs: 60 * 60 * 1000 }).allowed
+    ) {
+      return fail("Too many recipients. Try again later", 429);
+    }
     const body = (await req.json()) as {
       name: string;
       country: string;

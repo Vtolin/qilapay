@@ -15,6 +15,15 @@ db/*.db
 *.db
 *.db-journal
 
+# Fix F1/F12: untracked secret bundles, logs, and audit scratch DBs.
+# download/qilapay-source.zip embedded a live .env + wallet DB (removed from
+# tracking; history purge + key rotation still required — see AUDIT_REPORT.md).
+download/*.zip
+dev.log
+server.log
+# Security-audit work (exploit PoCs, findings report) — never submit to judges.
+audit-tests/
+
 # Legacy static prototype (kept for reference, not part of the Next build)
 legacy-preview/
 

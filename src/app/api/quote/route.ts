@@ -2,6 +2,7 @@
 import { db } from "@/lib/db";
 import { ok, fail, handleError, jsonSafe } from "@/lib/qila/api";
 import { requireUser } from "@/lib/qila/session";
+import { checkRateLimit } from "@/lib/qila/rate-limit";
 import { getFxSnapshot, convert, toUsd } from "@/lib/qila/fx";
 import { getConfig, getConfigNumber } from "@/lib/qila/config";
 import { amountToMicro, microToMajor } from "@/lib/qila/validation";
@@ -13,6 +14,13 @@ import { getTokenBalance } from "@/lib/qila/tempo";
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
+    // Each quote fans out to chain reads + a DEX quote; throttle per user + global.
+    if (
+      !checkRateLimit(`quote:${user.id}`, { limit: 30, windowMs: 60 * 60 * 1000 }).allowed ||
+      !checkRateLimit("quote:global", { limit: 300, windowMs: 60 * 60 * 1000 }).allowed
+    ) {
+      return fail("Too many quotes. Try again later", 429);
+    }
     const body = (await req.json()) as {
       fromCcy: string;
       toCcy: string;

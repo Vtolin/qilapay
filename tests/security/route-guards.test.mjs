@@ -36,15 +36,16 @@ describe("route-guard wiring", () => {
 
   it("H1: sessions fail closed + constant-time compare + secure cookie", () => {
     const src = read("src/lib/qila/session.ts");
-    assert.match(src, /timingSafeEqual/);
+    const tok = read("src/lib/qila/session-token.ts");
+    assert.match(tok, /timingSafeEqual/);
     assert.match(src, /secure:/);
-    assert.match(src, /SESSION_SECRET is not set/);
+    assert.match(tok, /SESSION_SECRET is not set/);
   });
 
   it("H2: quotes are single-use (pre-check + unique constraint + P2002)", () => {
     const route = read("src/app/api/transfer/route.ts");
     const schema = read("prisma/schema.prisma");
-    assert.match(route, /Quote sudah dipakai|sudah dipakai/);
+    assert.match(route, /Quote already used/);
     assert.match(route, /P2002/);
     assert.match(schema, /quoteId\s+String\s+@unique/);
   });
@@ -52,7 +53,7 @@ describe("route-guard wiring", () => {
   it("H2b: runExecution claims the row (no double-execute)", () => {
     const src = read("src/lib/qila/transfer-engine.ts");
     assert.match(src, /updateMany/);
-    assert.match(src, /tidak bisa dieksekusi/);
+    assert.match(src, /cannot be executed/);
   });
 
   it("H3: partial two-leg failures preserve evidence + refund flag", () => {

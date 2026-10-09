@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
     }
 
     const cur = await db.currency.findUnique({ where: { code } });
-    if (!cur) return fail("Unknown currency", 404);
+    // Fix F13: honor the isActive flag (was ignored — disabled currencies stayed fundable).
+    if (!cur || !cur.isActive) return fail("Unknown currency", 404);
 
     const client = getTreasuryClient();
     const amounts: Record<string, string> = {

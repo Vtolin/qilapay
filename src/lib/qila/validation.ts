@@ -216,6 +216,56 @@ export function isOverTopTier(
   };
 }
 
+// ------------------------------------------------------------ transfers (F5/F16)
+
+export const TRANSFER_STATUSES = [
+  "quoted",
+  "compliance_check",
+  "awaiting_verification",
+  "pending_review",
+  "submitted",
+  "settled",
+  "failed",
+  "blocked",
+] as const;
+
+export type TransferStatus = (typeof TRANSFER_STATUSES)[number];
+
+/**
+ * Allowlisted Transfer status transitions (fix F5: the state machine was
+ * previously enforced only by scattered predicates with no single source
+ * of truth and no DB CHECK possible on SQLite/Prisma).
+ */
+const TRANSFER_TRANSITIONS: Record<string, readonly string[]> = {
+  quoted: ["compliance_check"],
+  compliance_check: ["compliance_check", "awaiting_verification", "pending_review", "blocked", "submitted"],
+  awaiting_verification: ["submitted"],
+  pending_review: ["submitted", "blocked"],
+  submitted: ["settled", "failed"],
+  settled: [],
+  failed: [],
+  blocked: [],
+};
+
+export function canTransitionTransferStatus(from: string, to: string): boolean {
+  return TRANSFER_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+/** Fail-closed transition guard — throws on any unlisted (from -> to). */
+export function assertTransferTransition(from: string, to: string): void {
+  if (!canTransitionTransferStatus(from, to)) {
+    throw new Error(`Illegal transfer status transition: ${from} -> ${to}`);
+  }
+}
+
+/** Validate user-supplied KYC targetTier (fix F16: was unvalidated). */
+export function validateTargetTier(v: unknown): number {
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 0 || v > 3) {
+    throw new Error("targetTier must be an integer 0..3");
+  }
+  return v;
+}
+
 // ------------------------------------------------------------ failures (H3)
 
 export type PartialFailureDetail = {
