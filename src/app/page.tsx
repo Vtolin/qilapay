@@ -6,6 +6,7 @@ import { ControlSection } from "@/components/landing/ControlSection";
 import { AutomationSection } from "@/components/landing/AutomationSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { CtaSection } from "@/components/landing/CtaSection";
+import { LandingGuard } from "@/components/app/LandingGuard";
 
 export const metadata: Metadata = {
   title: `${SITE.name} — International Remittance`,
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
+      <LandingGuard />
       <HeroSection />
       <FeaturesSection />
       <ControlSection />
