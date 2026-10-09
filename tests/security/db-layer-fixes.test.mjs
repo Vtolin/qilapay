@@ -200,6 +200,7 @@ describe("F7/F10/F11/F13/F14/F15 wiring guards", () => {
     const kyc = read("src/lib/qila/kyc-provider.ts");
     assert.match(kyc, /NODE_ENV.*production/);
     assert.match(kyc, /return false/);
+    assert.match(kyc, /QILA_DEMO_BACKDOORS/);
     assert.match(read("src/app/api/auth/route.ts"), /isDemoMode\(\)/);
     assert.match(read("src/app/api/verify/[id]/simulate/route.ts"), /isDemoMode\(\)/);
   });

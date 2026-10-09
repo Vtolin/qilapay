@@ -32,9 +32,15 @@ export interface KycProvider {
 }
 
 export function isDemoMode(): boolean {
-  // Fix F7: never demo mode in production, even if DEMO_MODE=true leaks in.
-  if ((process.env.NODE_ENV || "development") === "production") return false;
-  return (process.env.DEMO_MODE || "").toLowerCase() === "true";
+  if ((process.env.DEMO_MODE || "").toLowerCase() !== "true") return false;
+  if ((process.env.NODE_ENV || "development") === "production") {
+    // Fix F7: demo backdoors stay off in production UNLESS explicitly opted
+    // in with a deliberately-named second flag. This keeps the judging demo
+    // working on Vercel while making it impossible to enable backdoors by
+    // accident via a copied-over DEMO_MODE=true.
+    return (process.env.QILA_DEMO_BACKDOORS || "").toLowerCase() === "true";
+  }
+  return true;
 }
 
 /**
