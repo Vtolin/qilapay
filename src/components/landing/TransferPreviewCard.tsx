@@ -30,14 +30,15 @@ function PreviewRow({ label, value, highlight = false }: PreviewRowProps) {
  */
 export function TransferPreviewCard() {
   return (
-    <div className="relative">
-      {/* Floating chips. Pure CSS, no images */}
-      <div className="absolute -left-4 -top-5 z-10 animate-float rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-sm font-bold shadow-[0_10px_30px_rgba(10,20,48,0.14)] sm:-left-8">
+    <div className="relative mt-7 sm:mt-0">
+      {/* Floating chips. Pure CSS, no images. Kept inside bounds on mobile
+          so the overflow-hidden hero never clips them. */}
+      <div className="absolute -top-6 left-2 z-10 animate-float rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-sm font-bold shadow-[0_10px_30px_rgba(10,20,48,0.14)] sm:-left-8 sm:-top-5">
         <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" />
         You hold the keys
       </div>
       <div
-        className="absolute -bottom-5 -right-3 z-10 animate-float rounded-2xl bg-night px-3.5 py-2.5 text-sm font-bold text-white shadow-[0_10px_30px_rgba(10,20,48,0.3)] sm:-right-6"
+        className="absolute -bottom-5 right-2 z-10 animate-float rounded-2xl bg-night px-3.5 py-2.5 text-sm font-bold text-white shadow-[0_10px_30px_rgba(10,20,48,0.3)] sm:-right-6"
         style={{ animationDelay: "1.4s" }}
       >
         <span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent align-middle" />

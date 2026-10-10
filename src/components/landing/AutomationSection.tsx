@@ -89,7 +89,7 @@ export function AutomationSection() {
             </div>
           </div>
 
-          <div className="absolute -left-4 top-8 -rotate-6 rounded-2xl bg-primary px-4 py-2.5 text-sm font-extrabold text-white shadow-xl">
+          <div className="absolute left-2 top-8 -rotate-6 rounded-2xl bg-primary px-4 py-2.5 text-sm font-extrabold text-white shadow-xl sm:-left-4">
             Set once, sent monthly
           </div>
         </div>

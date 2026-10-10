@@ -9,7 +9,7 @@ import { CtaSection } from "@/components/landing/CtaSection";
 import { LandingGuard } from "@/components/app/LandingGuard";
 
 export const metadata: Metadata = {
-  title: `${SITE.name} — International Remittance`,
+  title: `${SITE.name} - International Remittance`,
   description: SITE.description,
 };
 

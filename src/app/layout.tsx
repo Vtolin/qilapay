@@ -4,7 +4,6 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
-import { TestnetBanner } from "@/components/qila/TestnetBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,10 +26,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * Root layout. The TestnetBanner is sticky at the very top; the floating
- * capsule header is fixed below it (see SiteHeader offset). Main carries
- * top padding for both. Header and footer are session-aware and render on
- * every route, including /login and /register.
+ * Root layout. The capsule header is fixed and floating (see SiteHeader).
+ * Main carries top padding for the fixed header. Header and footer are
+ * session-aware and render on every route, including /login and /register.
  */
 export default function RootLayout({
   children,
@@ -43,9 +41,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <div className="flex min-h-screen flex-col">
-          <TestnetBanner />
           <SiteHeader />
-          <main className="flex-1 pt-[125px]">{children}</main>
+          <main className="flex-1 pt-[92px] sm:pt-[104px]">{children}</main>
           <SiteFooter />
         </div>
         <Toaster />

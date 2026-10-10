@@ -86,10 +86,10 @@ export function ControlSection() {
               ].map((row) => (
                 <div
                   key={row.label}
-                  className="flex items-center justify-between rounded-2xl bg-night-soft px-4 py-3 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-night-soft px-4 py-3 text-sm"
                 >
-                  <span className="font-semibold text-white/55">{row.label}</span>
-                  <strong className="text-right text-white">{row.value}</strong>
+                  <span className="min-w-0 font-semibold text-white/55">{row.label}</span>
+                  <strong className="shrink-0 text-right text-white">{row.value}</strong>
                 </div>
               ))}
             </div>
@@ -107,7 +107,7 @@ export function ControlSection() {
             </div>
           </div>
 
-          <div className="absolute -right-4 -top-6 rotate-6 rounded-2xl bg-surface px-4 py-2.5 text-sm font-extrabold text-ink shadow-xl">
+          <div className="absolute -top-6 right-2 rotate-6 rounded-2xl bg-surface px-4 py-2.5 text-sm font-extrabold text-ink shadow-xl sm:-right-4">
             🛡 Qila can&apos;t freeze this
           </div>
         </div>

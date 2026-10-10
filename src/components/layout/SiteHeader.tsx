@@ -17,7 +17,8 @@ import { useSession } from "@/lib/auth/useSession";
  * never show marketing links.
  * Slides away on scroll down, returns on scroll up.
  *
- * NOTE: top offset sits below the sticky TestnetBanner (see RootLayout).
+ * Floating on all breakpoints: fixed with a top + side gap so the capsule
+ * never touches the viewport edges (mobile included).
  */
 export function SiteHeader() {
   const { session, refresh } = useSession();
@@ -55,17 +56,17 @@ export function SiteHeader() {
   return (
     <header
       className={[
-        "fixed inset-x-0 top-[45px] z-30 flex justify-center px-3",
+        "fixed inset-x-0 top-3 z-30 flex justify-center px-3 sm:top-4 sm:px-4",
         "transition-transform duration-300",
         hidden ? "translate-y-[-140%]" : "translate-y-0",
       ].join(" ")}
     >
       <div
         className={[
-          "flex w-full max-w-290 items-center gap-2 rounded-full",
+          "flex w-full max-w-290 items-center gap-2 rounded-[20px] sm:rounded-full",
           "border border-line bg-surface/85 shadow-[0_12px_40px_rgba(10,20,48,0.14)]",
           "backdrop-blur-xl transition-all duration-300",
-          condensed ? "px-3 py-1.5" : "px-4 py-2.5",
+          condensed ? "px-3 py-1.5" : "px-3 py-2.5 sm:px-4",
         ].join(" ")}
       >
         <Link
@@ -82,7 +83,7 @@ export function SiteHeader() {
         {signedIn ? (
           <>
             <nav
-              className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+              className="qila-scroll flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               aria-label="App"
             >
               {APP_NAV.map((item) => {
@@ -145,15 +146,11 @@ export function SiteHeader() {
                 ))}
               </nav>
             ) : null}
-            <div className="ml-auto flex shrink-0 items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
               <Button href={ROUTES.login} variant="secondary">
                 Log in
               </Button>
-              <Button
-                href={ROUTES.signup}
-                variant="primary"
-                className="hidden sm:inline-flex"
-              >
+              <Button href={ROUTES.signup} variant="primary">
                 Get started
               </Button>
             </div>
