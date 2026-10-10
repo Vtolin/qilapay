@@ -1,6 +1,6 @@
 // Pre-deploy / pre-demo sanity gate (mitigation for F4).
 // Usage: node scripts/boot-check.mjs
-// Fails (non-zero exit) when the database file is missing, corrupt, empty,
+// Fails (non-zero exit) when the database is missing/unreachable, corrupt, empty,
 // or drifted from prisma/schema.prisma. Run before `start` on deploys and
 // before judging demos. Read-only.
 import { execFileSync } from "node:child_process";
@@ -15,7 +15,26 @@ const fail = (msg) => {
 };
 
 const db = new PrismaClient();
+// PG port: branch on URL scheme. SQLite path below is untouched.
+const isPg = (process.env.DATABASE_URL || "").startsWith("postgres");
 try {
+  let names = [];
+  if (isPg) {
+    await db.$queryRawUnsafe("SELECT 1");
+    const tables = await db.$queryRawUnsafe(
+      "SELECT tablename AS name FROM pg_tables WHERE schemaname = 'public'",
+    );
+    names = tables.map((t) => t.name);
+    for (const required of ["User", "Wallet", "Quote", "Transfer", "TransferEvent", "Currency", "KycTierConfig"]) {
+      if (!names.includes(required)) fail("missing table: " + required);
+    }
+    const indexes = await db.$queryRawUnsafe("SELECT indexname AS name FROM pg_indexes WHERE schemaname = 'public'");
+    const idxNames = new Set(indexes.map((i) => i.name));
+    // Fix F2/F8/F9: these must exist or the app's security assumptions are void.
+    for (const required of ["Transfer_quoteId_key", "User_email_lower", "Wallet_address_key"]) {
+      if (!idxNames.has(required)) fail("missing index: " + required);
+    }
+  } else {
   const integrity = await db.$queryRawUnsafe("PRAGMA integrity_check");
   if (JSON.stringify(integrity).toLowerCase().includes("ok") === false) {
     fail("integrity_check: " + JSON.stringify(integrity));
@@ -23,7 +42,7 @@ try {
   const tables = await db.$queryRawUnsafe(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma%'",
   );
-  const names = tables.map((t) => t.name);
+  names = tables.map((t) => t.name);
   for (const required of ["User", "Wallet", "Quote", "Transfer", "TransferEvent", "Currency", "KycTierConfig"]) {
     if (!names.includes(required)) fail("missing table: " + required);
   }
@@ -32,6 +51,7 @@ try {
   // Fix F2/F8/F9: these must exist or the app's security assumptions are void.
   for (const required of ["Transfer_quoteId_key", "User_email_nocase", "Wallet_address_key"]) {
     if (!idxNames.has(required)) fail("missing index: " + required);
+  }
   }
   const users = await db.user.count();
   const tiers = await db.kycTierConfig.count();
@@ -59,14 +79,23 @@ try {
   // will not spawn from execFileSync without a shell.
   const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
   const prismaCli = path.join(scriptsDir, "..", "node_modules", "prisma", "build", "index.js");
+  // PG port: migrate-diff talks to DIRECT_URL (non-pooled); SQLite keeps the
+  // legacy file: absolutize hack.
+  const diffUrl = isPg
+    ? process.env.DIRECT_URL || process.env.DATABASE_URL
+    : absoluteDbUrl(process.env.DATABASE_URL);
   execFileSync(
     process.execPath,
-    [prismaCli, "migrate", "diff", "--from-url", absoluteDbUrl(process.env.DATABASE_URL), "--to-schema-datamodel", "prisma/schema.prisma", "--exit-code"],
+    [prismaCli, "migrate", "diff", "--from-url", diffUrl, "--to-schema-datamodel", "prisma/schema.prisma", "--exit-code"],
     { stdio: "pipe", cwd: path.join(scriptsDir, "..") },
   );
   console.log("[boot-check] schema drift: none");
 } catch {
-  fail("schema drift detected (run prisma db push + scripts/apply-sqlite-indexes.mjs)");
+  fail(
+    isPg
+      ? "schema drift detected (run prisma migrate deploy + scripts/apply-postgres-indexes.mjs)"
+      : "schema drift detected (run prisma db push + scripts/apply-sqlite-indexes.mjs)",
+  );
 }
 
 if (failures > 0) {
